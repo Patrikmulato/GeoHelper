@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GeoGuessr Helper
 
-## Getting Started
+GeoGuessr helper app with a Next.js frontend and a NestJS backend.
 
-First, run the development server:
+## Stack
+
+- Frontend: Next.js 16 (App Router), TypeScript, Tailwind v4, Leaflet
+- Backend: NestJS 11 (`backend/`)
+- Crawlers: Node.js + Puppeteer scripts in `backend/crawlers/`
+- Package manager: pnpm workspace
+
+## Data Ownership
+
+- Backend is the source of truth for map and filter data.
+- Frontend does not use `src/data` runtime datasets.
+- API endpoints:
+  - `GET /api/data/geojson`
+  - `GET /api/data/map`
+  - `POST /api/data/filter`
+
+## Run Locally
+
+From repository root:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
+pnpm dev:backend
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Frontend runs on `http://localhost:3000`.
+Backend runs on `http://localhost:3001`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Data Pipelines
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### GeoCarHelpDesk sync
 
-## Learn More
+```bash
+pnpm --filter geoguessr-helper-backend sync:data
+```
 
-To learn more about Next.js, take a look at the following resources:
+This command:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- regenerates `backend/src/data/geo-car-helpdesk.ts` from `GeoCarHelpDesk`
+- reapplies the append-only crawler merge automatically after sync
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Guide crawler workflow
 
-## Deploy on Vercel
+```bash
+pnpm --filter geoguessr-helper-backend crawl:guides
+pnpm --filter geoguessr-helper-backend consolidate:guides
+pnpm --filter geoguessr-helper-backend extract:guides
+pnpm --filter geoguessr-helper-backend merge:crawlers
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Purpose:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `crawl:guides` scrapes per-country guide data from the configured source
+- `consolidate:guides` builds a single master dataset and summary files
+- `extract:guides` generates structured TypeScript-style extracted data
+- `merge:crawlers` appends only missing entries into backend data files without overwriting existing keys
+
+Notes:
+
+- Crawler scripts are committed in `backend/crawlers/`
+- Generated crawler output in `backend/crawlers/data/` is local-only and should not be committed
+
+Optional crawler env in `.env.local`:
+
+```bash
+GUIDE_SOURCE_BASE_URL=
+GUIDE_SOURCE_SITEMAP_URL=
+GUIDE_CRAWL_LIMIT=
+GUIDE_CRAWL_DELAY_MS=
+```
+
+- `GUIDE_SOURCE_BASE_URL` is required when running `crawl:guides`
+- `GUIDE_SOURCE_SITEMAP_URL` defaults to `${GUIDE_SOURCE_BASE_URL}/sitemap.xml`
+
+## Build
+
+```bash
+pnpm build
+pnpm build:backend
+```
+
+## Test Backend
+
+```bash
+pnpm --filter geoguessr-helper-backend test
+```
+
+Includes:
+
+- Filter semantics tests
+- Validation e2e tests for `/api/data/filter`
+
+## Important Rules
+
+- Backend remains the source of truth for runtime map/filter data
+- Do not hand-edit `backend/src/data/geo-car-helpdesk.ts` without considering that `sync:data` will regenerate it
+- Crawler merge is append-only and does not overwrite existing dataset entries

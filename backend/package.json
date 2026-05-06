@@ -1,0 +1,37 @@
+{
+  "name": "geoguessr-helper-backend",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.10.0",
+  "scripts": {
+    "predev": "pnpm sync:data:pull",
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "test": "tsx --test src/**/*.test.ts",
+    "sync:data": "tsx scripts/sync-geocarhelpdesk.ts && pnpm merge:crawlers",
+    "sync:data:pull": "git -C ../../GeoCarHelpDesk pull --ff-only && pnpm sync:data",
+    "crawl:guides": "tsx crawlers/crawl-guides.ts",
+    "consolidate:guides": "tsx crawlers/consolidate.ts",
+    "extract:guides": "tsx crawlers/extract-guide-data.ts",
+    "merge:crawlers": "tsx crawlers/append-crawler-data-to-backend-data.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.1.19",
+    "@nestjs/core": "11.1.19",
+    "@nestjs/platform-express": "11.1.19",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.14.4",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "11.1.19",
+    "@types/node": "22.19.17",
+    "@types/supertest": "6.0.3",
+    "puppeteer": "24.43.0",
+    "supertest": "7.2.2",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3"
+  }
+}
