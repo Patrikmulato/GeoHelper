@@ -39,7 +39,7 @@ jobs:
           node -e "const fs=require('fs'); const raw=fs.readFileSync('audit.json','utf8').trim(); const lines=['## Production Audit', '']; if (!raw) { lines.push('No audit output produced.'); } else { let parsed; try { parsed=JSON.parse(raw); } catch { parsed=null; } const vulnerabilities=parsed?.metadata?.vulnerabilities; if (!vulnerabilities) { lines.push('No production vulnerabilities reported.'); } else { lines.push(`low: ${vulnerabilities.low ?? 0}`); lines.push(`moderate: ${vulnerabilities.moderate ?? 0}`); lines.push(`high: ${vulnerabilities.high ?? 0}`); lines.push(`critical: ${vulnerabilities.critical ?? 0}`); } } fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');"
 
       - name: Upload dependency reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dependency-maintenance-reports
           path: |
