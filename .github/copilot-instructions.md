@@ -1,5 +1,10 @@
 # GeoGuessr Helper — Copilot Instructions
 
+## Requirements
+
+- **Node.js 22+** (enforced via `package.json` engines, `.nvmrc`, `.node-version`)
+- pnpm 10.10.0+
+
 ## Project
 
 A pnpm workspace with:
@@ -37,12 +42,24 @@ A pnpm workspace with:
 - Backend dev: `pnpm dev:backend`
 - Frontend build: `pnpm build`
 - Backend build: `pnpm build:backend`
+- Frontend tests: `pnpm test`
+- Frontend tests with coverage: `pnpm test:coverage`
 - Backend tests: `pnpm --filter geoguessr-helper-backend test`
 - GeoCarHelpDesk sync: `pnpm --filter geoguessr-helper-backend sync:data`
 - Guide crawl: `pnpm --filter geoguessr-helper-backend crawl:guides`
 - Guide consolidation: `pnpm --filter geoguessr-helper-backend consolidate:guides`
 - Guide extraction: `pnpm --filter geoguessr-helper-backend extract:guides`
 - Crawler append-only merge: `pnpm --filter geoguessr-helper-backend merge:crawlers`
+
+## Git Hooks (Husky + lint-staged)
+
+Automated quality checks at key git stages:
+
+**Pre-Commit:** TypeScript type checking → ESLint auto-fix → Prettier format → Jest related tests
+**Commit Message:** Validates Conventional Commits format (e.g., `feat(scope): description`)
+**Pre-Push:** Full TypeScript checking, complete test suite, and frontend build
+
+Fix any failures and re-stage before retrying. Bypass with `--no-verify` if absolutely necessary (not recommended).
 
 ## Adding a new filter
 

@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -39,11 +40,28 @@ jobs:
       - name: Lint frontend
         run: pnpm lint
 
+      - name: Type check frontend
+        run: npx tsc --noEmit
+
+      - name: Type check backend
+        run: pnpm --filter geoguessr-helper-backend exec tsc --noEmit
+
       - name: Build backend
         run: pnpm --filter geoguessr-helper-backend build
 
       - name: Test backend
         run: pnpm --filter geoguessr-helper-backend test
 
+      - name: Test frontend
+        run: pnpm test:coverage
+
       - name: Build frontend
         run: pnpm build
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: frontend
+          name: codecov-umbrella
+          fail_ci_if_error: false
