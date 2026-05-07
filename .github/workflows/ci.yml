@@ -7,8 +7,12 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -28,16 +32,22 @@ jobs:
           version: 10.10.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Lint frontend
         run: pnpm lint
+
+      - name: Type check frontend
+        run: npx tsc --noEmit
+
+      - name: Type check backend
+        run: pnpm --filter geoguessr-helper-backend exec tsc --noEmit
 
       - name: Build backend
         run: pnpm --filter geoguessr-helper-backend build
@@ -45,5 +55,16 @@ jobs:
       - name: Test backend
         run: pnpm --filter geoguessr-helper-backend test
 
+      - name: Test frontend
+        run: pnpm test:coverage
+
       - name: Build frontend
         run: pnpm build
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: frontend
+          name: codecov-umbrella
+          fail_ci_if_error: false
