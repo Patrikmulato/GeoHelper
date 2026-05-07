@@ -12,6 +12,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 A Next.js web app that helps players identify countries in GeoGuessr by visualizing geographic clues (driving side, road line markings, etc.) on an interactive Leaflet world map with filter toggles.
 
+## Requirements
+
+- **Node.js 22+** (`.nvmrc`, `.node-version`, `package.json` engines)
+- pnpm 10.10.0+
+
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router) with TypeScript
@@ -44,12 +49,19 @@ public/
 
 ## Commands
 
+| Command | Purpose |
+| ------- | ------- |
+
+## Commands
+
 | Command                                                     | Purpose                                                        |
 | ----------------------------------------------------------- | -------------------------------------------------------------- |
 | `pnpm dev`                                                  | Start Next.js dev server                                       |
 | `pnpm dev:backend`                                          | Start NestJS backend                                           |
 | `pnpm build`                                                | Build frontend                                                 |
 | `pnpm build:backend`                                        | Build backend                                                  |
+| `pnpm test`                                                 | Run frontend tests                                             |
+| `pnpm test:coverage`                                        | Run frontend tests with coverage                               |
 | `pnpm --filter geoguessr-helper-backend test`               | Run backend tests                                              |
 | `pnpm --filter geoguessr-helper-backend crawl:guides`       | Scrape country guide data                                      |
 | `pnpm --filter geoguessr-helper-backend consolidate:guides` | Build consolidated crawler dataset                             |
@@ -57,9 +69,64 @@ public/
 | `pnpm --filter geoguessr-helper-backend merge:crawlers`     | Append missing extracted data into backend data files          |
 | `pnpm --filter geoguessr-helper-backend sync:data`          | Regenerate GeoCarHelpDesk data and reapply crawler append step |
 
+## CI/CD
+
+The project uses GitHub Actions for continuous integration. The CI workflow (`.github/workflows/ci.yml`) runs on pull requests and pushes to main, performing:
+
+- Dependency installation
+- Frontend linting
+- TypeScript type checking (frontend and backend)
+- Backend build and testing
+- Frontend testing with coverage reporting
+- Frontend build
+- Coverage upload to Codecov
+
+All checks must pass for auto-merge to be enabled.
+
+## Git Hooks (Husky)
+
+The project uses Husky to enforce code quality, formatting, and testing at key git stages:
+
+### Pre-Commit Hook
+
+Runs on every commit attempt:
+
+1. **TypeScript type checking** on `.ts`/`.tsx` files (`tsc --noEmit`)
+2. **ESLint** auto-fixes style issues on changed code
+3. **Prettier** formats code and JSON/CSS/Markdown files
+4. **Jest** runs related tests in `--bail` mode (stops on first failure)
+
+If any check fails, fix the issues and re-stage before retrying the commit.
+
+### Commit Message Hook
+
+Validates commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>(<scope>): <subject>
+
+Example: feat(filters): add new driving side filter
+```
+
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `revert`
+
+### Pre-Push Hook
+
+Runs before pushing to remote:
+
+1. Type checking for frontend and backend
+2. Full test suite (not just related tests)
+3. Frontend build validation
+
+Prevents pushing code that doesn't compile or has failing tests.
+
+### Bypass Hooks (Not Recommended)
+
+- Commit only: `git commit --no-verify`
+- Push only: `git push --no-verify`
+
 ## Key Conventions
 
-1. **Client components** — Any component using Leaflet, browser APIs, or React hooks must be marked `"use client"`. The `WorldMap` component is loaded with `next/dynamic` and `ssr: false`.
 2. **Backend-owned data/filtering** — API is source of truth for map data and filter results:
 
 - `GET /api/data/geojson`

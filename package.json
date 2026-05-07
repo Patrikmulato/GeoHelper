@@ -2,7 +2,16 @@
   "name": "geoguessr-helper",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@10.10.0",
+  "pnpm": {
+    "overrides": {
+      "js-yaml": "4.1.1"
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "predev": "pnpm sync:data:pull",
     "dev": "next dev",
@@ -12,7 +21,13 @@
     "sync:data": "pnpm --filter geoguessr-helper-backend sync:data",
     "sync:data:pull": "pnpm --filter geoguessr-helper-backend sync:data:pull",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint . --max-warnings=0",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:backend": "pnpm --filter geoguessr-helper-backend test",
+    "ci": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm --filter geoguessr-helper-backend build && pnpm --filter geoguessr-helper-backend test && pnpm build"
   },
   "dependencies": {
     "leaflet": "1.9.4",
@@ -22,14 +37,37 @@
     "react-leaflet": "5.0.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
     "@tailwindcss/postcss": "4.2.4",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
     "@types/leaflet": "1.9.21",
     "@types/node": "20.19.39",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@types/jest": "30.0.0",
+    "codecov": "3.8.3",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.4",
+    "husky": "9.1.7",
+    "jest": "30.3.0",
+    "jest-environment-jsdom": "30.0.0",
+    "lint-staged": "17.0.2",
+    "prettier": "3.8.3",
     "tailwindcss": "4.2.4",
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "node ./scripts/lint-staged-tsc.js",
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix --no-ignore",
+      "prettier --write",
+      "jest --bail --findRelatedTests"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
   }
 }
