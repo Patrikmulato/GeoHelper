@@ -1,4 +1,4 @@
-import { render, act } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Home from '../page';
 import * as mapData from '@/lib/api/map-data';
@@ -13,6 +13,12 @@ jest.mock('@/lib/api/map-data', () => ({
 describe('Home', () => {
   beforeEach(() => {
     // Mock successful API responses
+    const mockFetchGeoJson = mapData.fetchGeoJson as jest.Mock;
+    mockFetchGeoJson.mockResolvedValue({
+      type: 'FeatureCollection',
+      features: [],
+    });
+
     const mockFetchMapData = mapData.fetchMapData as jest.Mock;
     mockFetchMapData.mockResolvedValue({
       aliases: {},
@@ -28,18 +34,24 @@ describe('Home', () => {
       vehicleTypeData: {},
       tooltipHtmlByCountry: {},
     });
+
+    const mockFetchFilteredCountries = mapData.fetchFilteredCountries as jest.Mock;
+    mockFetchFilteredCountries.mockResolvedValue({ countries: [] });
   });
 
   it('renders the main page without crashing', async () => {
-    await act(async () => {
-      render(<Home />);
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(document.body).toBeInTheDocument();
     });
-    // Check if the page renders without crashing
-    expect(document.body).toBeInTheDocument();
   });
 
-  it('shows loading state initially', () => {
+  it('shows loading state initially', async () => {
     render(<Home />);
-    // Basic check that component mounts
+
+    await waitFor(() => {
+      expect(document.body).toBeInTheDocument();
+    });
   });
 });
