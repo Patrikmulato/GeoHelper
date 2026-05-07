@@ -2,6 +2,11 @@
 
 GeoGuessr helper app with a Next.js frontend and a NestJS backend.
 
+## Prerequisites
+
+- **Node.js 22 or higher** (see `.nvmrc` or `.node-version`)
+- pnpm 10.10.0+ (specified in `package.json` packageManager)
+
 ## Stack
 
 - Frontend: Next.js 16 (App Router), TypeScript, Tailwind v4, Leaflet
@@ -100,3 +105,4 @@ Includes:
 - Backend remains the source of truth for runtime map/filter data
 - Do not hand-edit `backend/src/data/geo-car-helpdesk.ts` without considering that `sync:data` will regenerate it
 - Crawler merge is append-only and does not overwrite existing dataset entries
+- Use exact package versions in `package.json`; do not use caret ranges like `^` for dependencies or devDependencies
