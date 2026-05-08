@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommands": "",
+  "outputDirectory": null,
   "functions": {
     "api/index.ts": {
       "runtime": "nodejs22.x"
