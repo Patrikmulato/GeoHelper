@@ -6,23 +6,27 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule } from '../src/app.module.js';
 import { setupApp } from '../src/app-setup.js';
 
-let cachedHandler: ((req: Request, res: Response) => void) | null = null;
+let cachedHandler: ReturnType<typeof express> | null = null;
 
 async function getHandler() {
-    if (cachedHandler) {
-        return cachedHandler;
-    }
-
-    const expressApp = express();
-    const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
-    setupApp(nestApp, { withGlobalPrefix: true });
-    await nestApp.init();
-
-    cachedHandler = expressApp;
+  if (cachedHandler) {
     return cachedHandler;
+  }
+
+  const expressApp = express();
+  const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
+  setupApp(nestApp, { withGlobalPrefix: true });
+  await nestApp.init();
+
+  cachedHandler = expressApp;
+  return cachedHandler;
 }
 
 export default async function handler(req: Request, res: Response) {
-    const nestHandler = await getHandler();
-    return nestHandler(req, res);
+  const nestHandler = await getHandler();
+  if (!nestHandler) {
+    res.status(500).send('Failed to initialize the server');
+    return;
+  }
+  return nestHandler(req, res);
 }

@@ -63,7 +63,9 @@
     "*.{ts,tsx}": "node ./scripts/lint-staged-tsc.js",
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix --no-ignore",
-      "prettier --write",
+      "prettier --write"
+    ],
+    "src/**/*.{js,jsx,ts,tsx}": [
       "jest --bail --findRelatedTests"
     ],
     "*.{json,css,md}": [
