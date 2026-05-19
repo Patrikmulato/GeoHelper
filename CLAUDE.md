@@ -1,22 +1,22 @@
 @AGENTS.md
+@backend/CLAUDE.md
 
 ## Quick Reference
 
 **Required:** Node.js 22+ (see `.nvmrc`, `.node-version`, or `package.json` engines field)
 
+**Dev startup prerequisite:** `pnpm dev` and `pnpm dev:backend` run `sync:data:pull` automatically, which does a `git pull` on the sibling `GeoCarHelpDesk` repo (`../GeoCarHelpDesk`). If that repo is not present locally, dev startup will fail.
+
 - Next.js 16 App Router + TypeScript + Tailwind v4
 - Leaflet map loaded client-side only (`next/dynamic`, `ssr: false`)
-- NestJS backend in `backend/` is source of truth for map/filter data
+- Key frontend components: `WorldMap.tsx` (map), `FilterDropdown.tsx` (reusable filter UI)
+- NestJS backend in `backend/` is source of truth for map/filter data — see `backend/CLAUDE.md` for full backend details
 - API routes: `GET /api/data/geojson`, `GET /api/data/map`, `POST /api/data/filter`
 - Build frontend: `pnpm build` | Dev frontend: `pnpm dev`
 - Build backend: `pnpm build:backend` | Dev backend: `pnpm dev:backend`
 - Frontend tests: `pnpm test` | Frontend tests with coverage: `pnpm test:coverage`
+- Frontend test coverage is minimal (2 tests in `src/app/__tests__/page.test.tsx`) — new features should add tests
 - Backend tests: `pnpm --filter geoguessr-helper-backend test`
-- Guide crawler: `pnpm --filter geoguessr-helper-backend crawl:guides`
-- Consolidate crawler data: `pnpm --filter geoguessr-helper-backend consolidate:guides`
-- Extract structured crawler data: `pnpm --filter geoguessr-helper-backend extract:guides`
-- Merge extracted missing data into backend datasets: `pnpm --filter geoguessr-helper-backend merge:crawlers`
-- `pnpm --filter geoguessr-helper-backend sync:data` regenerates GeoCarHelpDesk data and then reapplies the crawler append-only merge
 - **Pre-commit:** Type checking → ESLint → Prettier → Jest tests
 - **Commit messages:** Must follow Conventional Commits (e.g., `feat(scope): description`)
 - **Pre-push:** Full type checking + all tests + frontend build validation
