@@ -1,0 +1,47 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["every weekend"],
+  "timezone": "UTC",
+  "packageRules": [
+    {
+      "description": "Auto-merge patch and minor updates",
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "matchPackagePatterns": ["^next$", "^react", "react-leaflet", "^leaflet"],
+      "groupName": "Framework"
+    },
+    {
+      "matchPackagePatterns": ["^@nestjs/"],
+      "groupName": "NestJS"
+    },
+    {
+      "matchPackagePatterns": ["jest", "@jest/", "@testing-library/", "supertest"],
+      "groupName": "Testing"
+    },
+    {
+      "matchPackagePatterns": ["^tailwindcss", "^@tailwindcss/"],
+      "groupName": "Styling"
+    },
+    {
+      "matchPackagePatterns": ["eslint", "prettier", "@eslint/"],
+      "groupName": "Linting"
+    },
+    {
+      "matchPackageNames": ["husky", "lint-staged"],
+      "matchPackagePatterns": ["commitlint"],
+      "groupName": "Git hooks"
+    },
+    {
+      "matchPackagePatterns": ["^@types/"],
+      "groupName": "Type definitions"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions"
+    }
+  ]
+}
