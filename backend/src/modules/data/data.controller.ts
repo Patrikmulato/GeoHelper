@@ -4,30 +4,30 @@ import { FilterRequestDto } from './dto/filter-request.dto.js';
 
 @Controller('data')
 export class DataController {
-    constructor(@Inject(DataService) private readonly dataService: DataService) { }
+  constructor(@Inject(DataService) private readonly dataService: DataService) {}
 
-    @Get('geojson')
-    getGeoJson() {
-        return this.dataService.getGeoJson();
-    }
+  @Get('geojson')
+  getGeoJson() {
+    return this.dataService.getGeoJson();
+  }
 
-    @Get('map')
-    getMapData() {
-        return this.dataService.getMapData();
-    }
+  @Get('map')
+  getMapData() {
+    return this.dataService.getMapData();
+  }
 
-    @Post('filter')
-    getFilteredCountries(
-        @Body(
-            new ValidationPipe({
-                whitelist: true,
-                forbidNonWhitelisted: true,
-                transform: true,
-                expectedType: FilterRequestDto,
-            }),
-        )
-        body: FilterRequestDto,
-    ) {
-        return this.dataService.getFilteredCountries(body);
-    }
+  @Post('filter')
+  getFilteredCountries(
+    @Body(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        expectedType: FilterRequestDto,
+      })
+    )
+    body: FilterRequestDto
+  ) {
+    return this.dataService.getFilteredCountries(body);
+  }
 }

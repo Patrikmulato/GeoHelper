@@ -37,13 +37,22 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check frontend
+        run: pnpm typecheck
+
+      - name: Type check backend
+        run: pnpm --filter geoguessr-helper-backend exec tsc --noEmit
 
       - name: Build backend
         run: pnpm --filter geoguessr-helper-backend build
 
       - name: Test backend
         run: pnpm --filter geoguessr-helper-backend test
+
+      - name: Test frontend
+        run: pnpm test
 
       - name: Build frontend
         run: pnpm build
