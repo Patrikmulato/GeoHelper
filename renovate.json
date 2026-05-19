@@ -12,33 +12,42 @@
       "automergeType": "pr"
     },
     {
-      "matchPackagePatterns": ["^next$", "^react", "react-leaflet", "^leaflet"],
-      "groupName": "Framework"
+      "groupName": "Framework",
+      "matchPackageNames": [
+        "/^next$/",
+        "/^react/",
+        "/react-leaflet/",
+        "/^leaflet/"
+      ]
     },
     {
-      "matchPackagePatterns": ["^@nestjs/"],
-      "groupName": "NestJS"
+      "groupName": "NestJS",
+      "matchPackageNames": ["/^@nestjs//"]
     },
     {
-      "matchPackagePatterns": ["jest", "@jest/", "@testing-library/", "supertest"],
-      "groupName": "Testing"
+      "groupName": "Testing",
+      "matchPackageNames": [
+        "/jest/",
+        "/@jest//",
+        "/@testing-library//",
+        "/supertest/"
+      ]
     },
     {
-      "matchPackagePatterns": ["^tailwindcss", "^@tailwindcss/"],
-      "groupName": "Styling"
+      "groupName": "Styling",
+      "matchPackageNames": ["/^tailwindcss/", "/^@tailwindcss//"]
     },
     {
-      "matchPackagePatterns": ["eslint", "prettier", "@eslint/"],
-      "groupName": "Linting"
+      "groupName": "Linting",
+      "matchPackageNames": ["/eslint/", "/prettier/", "/@eslint//"]
     },
     {
-      "matchPackageNames": ["husky", "lint-staged"],
-      "matchPackagePatterns": ["commitlint"],
+      "matchPackageNames": ["husky", "lint-staged", "/commitlint/"],
       "groupName": "Git hooks"
     },
     {
-      "matchPackagePatterns": ["^@types/"],
-      "groupName": "Type definitions"
+      "groupName": "Type definitions",
+      "matchPackageNames": ["/^@types//"]
     },
     {
       "matchManagers": ["github-actions"],
