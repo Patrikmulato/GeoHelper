@@ -11,20 +11,20 @@ export interface Hint {
 }
 
 export type HintCategory =
-  | "driving-side"
-  | "road-markings"
-  | "license-plates"
-  | "language"
-  | "landscape"
-  | "camera"
-  | "bollards"
-  | "signs"
-  | "vehicles"
-  | "utilities";
+  | 'driving-side'
+  | 'road-markings'
+  | 'license-plates'
+  | 'language'
+  | 'landscape'
+  | 'camera'
+  | 'bollards'
+  | 'signs'
+  | 'vehicles'
+  | 'utilities';
 
 export interface Country {
   code: string;
   name: string;
   region: string;
-  drivingSide: "left" | "right";
+  drivingSide: 'left' | 'right';
 }

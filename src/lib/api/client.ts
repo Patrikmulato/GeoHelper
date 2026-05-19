@@ -1,4 +1,4 @@
-import { config } from "@/config";
+import { config } from '@/config';
 
 type RequestOptions = {
   headers?: Record<string, string>;
@@ -34,7 +34,7 @@ class ApiClient {
     const res = await fetch(url, {
       method,
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...options?.headers,
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -43,30 +43,30 @@ class ApiClient {
 
     if (!res.ok) {
       const error = await res.json().catch(() => ({ message: res.statusText }));
-      throw new ApiError(res.status, error.message ?? "Request failed");
+      throw new ApiError(res.status, error.message ?? 'Request failed');
     }
 
     return res.json() as Promise<T>;
   }
 
   get<T>(path: string, options?: RequestOptions) {
-    return this.request<T>("GET", path, undefined, options);
+    return this.request<T>('GET', path, undefined, options);
   }
 
   post<T>(path: string, body?: unknown, options?: RequestOptions) {
-    return this.request<T>("POST", path, body, options);
+    return this.request<T>('POST', path, body, options);
   }
 
   put<T>(path: string, body?: unknown, options?: RequestOptions) {
-    return this.request<T>("PUT", path, body, options);
+    return this.request<T>('PUT', path, body, options);
   }
 
   patch<T>(path: string, body?: unknown, options?: RequestOptions) {
-    return this.request<T>("PATCH", path, body, options);
+    return this.request<T>('PATCH', path, body, options);
   }
 
   delete<T>(path: string, options?: RequestOptions) {
-    return this.request<T>("DELETE", path, undefined, options);
+    return this.request<T>('DELETE', path, undefined, options);
   }
 }
 
@@ -76,7 +76,7 @@ export class ApiError extends Error {
     message: string
   ) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
   }
 }
 

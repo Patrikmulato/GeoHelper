@@ -10,11 +10,7 @@ interface WorldMapProps {
   getTooltip: (countryName: string) => string;
 }
 
-export default function WorldMap({
-  geojson,
-  getColor,
-  getTooltip,
-}: WorldMapProps) {
+export default function WorldMap({ geojson, getColor, getTooltip }: WorldMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.GeoJSON | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,18 +33,15 @@ export default function WorldMap({
       zoomControl: true,
     });
 
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      {
-        noWrap: true,
-        bounds: [
-          [-85, -180],
-          [85, 180],
-        ],
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-      },
-    ).addTo(mapRef.current);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      noWrap: true,
+      bounds: [
+        [-85, -180],
+        [85, 180],
+      ],
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    }).addTo(mapRef.current);
 
     mapRef.current.invalidateSize();
 
@@ -116,5 +109,5 @@ export default function WorldMap({
     });
   }, [geojson, getColor, getTooltip, getCountryName]);
 
-  return <div ref={containerRef} className='h-full w-full' />;
+  return <div ref={containerRef} className="h-full w-full" />;
 }
