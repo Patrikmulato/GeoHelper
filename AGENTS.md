@@ -36,6 +36,7 @@ src/
     globals.css     # Global styles + Leaflet tooltip overrides
   components/       # Reusable React components
     WorldMap.tsx    # Leaflet map component (client-only)
+    FilterDropdown.tsx  # Generic filter dropdown (grouped options, smart positioning)
   config/           # App configuration (API base URL, env vars)
   lib/api/          # API client + typed API wrappers
   types/            # Shared TypeScript contracts for API payloads
@@ -43,14 +44,24 @@ backend/
   crawlers/         # External guide scraping, consolidation, extraction, and merge scripts
   src/
     modules/data/   # GeoJSON/map/filter endpoints + DTO + service
+.claude/
+  commands/         # Project slash commands (see below)
+  rules/            # Context-aware agent rules loaded by file glob
+  settings.json     # Pre-allowed commands + hooks
 public/
   countries.geo.json  # World boundaries source read by backend
 ```
 
-## Commands
+## Claude Commands
 
-| Command | Purpose |
-| ------- | ------- |
+Invoke these with `/command-name` in Claude Code:
+
+| Command         | Purpose                                                             |
+| --------------- | ------------------------------------------------------------------- |
+| `/crawl`        | Run the full 4-stage crawler pipeline                               |
+| `/sync-data`    | Sync GeoCarHelpDesk repo and regenerate `geo-car-helpdesk.ts`       |
+| `/add-country`  | Guided flow to add a new country across all data files              |
+| `/check-filter` | Verify backend DTO and frontend types are in sync for all 7 filters |
 
 ## Commands
 
