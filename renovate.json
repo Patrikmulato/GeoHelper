@@ -3,6 +3,7 @@
   "extends": ["config:recommended"],
   "schedule": ["every weekend"],
   "timezone": "UTC",
+  "dependencyDashboardApproval": false,
   "packageRules": [
     {
       "description": "Auto-merge patch and minor updates",
