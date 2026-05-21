@@ -47,7 +47,7 @@ describe('DataService.getFilteredCountries', () => {
     });
 
     assert.ok(res.countries.includes('France'));
-    assert.ok(!res.countries.includes('Brazil'));
+    assert.ok(!res.countries.includes('El Salvador')); // no euPlate entry → excluded by euPlate:yes filter
   });
 
   it('applies vehicle and color filters', () => {
