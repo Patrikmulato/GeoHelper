@@ -13,6 +13,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "prepare": "husky",
     "predev": "pnpm sync:data:pull",
     "dev": "next dev",
     "dev:backend": "pnpm sync:data:pull && pnpm --filter geoguessr-helper-backend dev",
