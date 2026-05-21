@@ -6,3 +6,4 @@ coverage
 .pnpm-store
 pnpm-lock.yaml
 renovate.json
+backend/src/data/geo-car-helpdesk.ts
