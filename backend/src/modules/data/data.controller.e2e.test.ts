@@ -78,4 +78,61 @@ describe('DataController /api/data/filter validation (e2e)', () => {
     assert.ok(Array.isArray(res.body.message));
     assert.ok(res.body.message.some((m: string) => m.includes('coverageYearFilter')));
   });
+
+  it('GET /api/data/geojson returns a valid GeoJSON FeatureCollection', async () => {
+    const res = await request(app.getHttpServer()).get('/api/data/geojson').expect(200);
+
+    assert.equal(res.body.type, 'FeatureCollection');
+    assert.ok(Array.isArray(res.body.features));
+    assert.ok(res.body.features.length > 0);
+  });
+
+  it('GET /api/data/map returns all expected top-level keys', async () => {
+    const res = await request(app.getHttpServer()).get('/api/data/map').expect(200);
+
+    const expectedKeys = [
+      'aliases',
+      'geoguessrCountries',
+      'drivingSideData',
+      'roadLinesData',
+      'linePatternLabels',
+      'linePatternColors',
+      'euPlateData',
+      'cameraGenData',
+      'coverageYearsData',
+      'carColorData',
+      'vehicleTypeData',
+      'tooltipHtmlByCountry',
+    ];
+    for (const key of expectedKeys) {
+      assert.ok(key in res.body, `missing key: ${key}`);
+    }
+  });
+
+  it('POST /api/data/filter with a missing required field returns 400', async () => {
+    const payloadWithoutSideFilter = Object.fromEntries(
+      Object.entries(validPayload).filter(([key]) => key !== 'sideFilter')
+    );
+
+    const res = await request(app.getHttpServer())
+      .post('/api/data/filter')
+      .send(payloadWithoutSideFilter)
+      .expect(400);
+
+    assert.ok(Array.isArray(res.body.message));
+  });
+
+  it('POST /api/data/filter returns identical results on repeated calls (cache correctness)', async () => {
+    const first = await request(app.getHttpServer())
+      .post('/api/data/filter')
+      .send(validPayload)
+      .expect(201);
+
+    const second = await request(app.getHttpServer())
+      .post('/api/data/filter')
+      .send(validPayload)
+      .expect(201);
+
+    assert.deepEqual(first.body.countries, second.body.countries);
+  });
 });
