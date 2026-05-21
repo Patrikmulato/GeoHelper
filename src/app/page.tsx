@@ -30,7 +30,6 @@ export default function Home() {
   const [mapData, setMapData] = useState<MapDataResponse | null>(null);
   const [filteredCountries, setFilteredCountries] = useState<string[] | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [initialError, setInitialError] = useState<string | null>(null);
   const [filterError, setFilterError] = useState<string | null>(null);
   const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -68,7 +67,6 @@ export default function Home() {
     let active = true;
 
     async function loadFilteredCountries() {
-      setIsFilterLoading(true);
       setFilterError(null);
       try {
         const res = await fetchFilteredCountries({
@@ -85,9 +83,6 @@ export default function Home() {
       } catch {
         if (!active) return;
         setFilterError('Failed to apply filters from backend.');
-      } finally {
-        if (!active) return;
-        setIsFilterLoading(false);
       }
     }
 
