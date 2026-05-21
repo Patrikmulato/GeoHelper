@@ -120,11 +120,11 @@ export default function FilterDropdown<T extends string>({
   };
 
   return (
-    <div>
+    <div className="w-full">
       <button
         ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 outline-none transition-colors hover:border-zinc-600 focus:border-blue-500"
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 outline-none transition-colors hover:border-zinc-600 focus:border-blue-500"
       >
         <span>{displayLabel}</span>
         <svg

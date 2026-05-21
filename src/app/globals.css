@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #262b31;
+  --background: #181c22;
   --foreground: #e5e7eb;
 }
 
@@ -26,7 +26,7 @@ body {
 }
 
 .leaflet-container {
-  background: #262b31 !important;
+  background: #181c22 !important;
 }
 
 .map-tooltip {
@@ -42,4 +42,22 @@ body {
 
 .map-tooltip::before {
   border-top-color: #3f3f46 !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #181c22;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
 }

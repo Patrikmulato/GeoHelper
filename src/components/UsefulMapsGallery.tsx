@@ -101,7 +101,7 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
   return (
     <section id={id} className="scroll-mt-4">
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">{title}</h2>
-      <div className="relative overflow-hidden rounded-xl border border-zinc-700/60">
+      <div className="relative overflow-hidden rounded-xl border border-zinc-700 transition-colors hover:border-zinc-500">
         {scale > 1 && (
           <button
             type="button"
@@ -114,7 +114,10 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
         <div
           ref={containerRef}
           className="w-full overflow-hidden"
-          style={{ cursor: isDragging ? 'grabbing' : scale > 1 ? 'grab' : 'zoom-in' }}
+          style={{
+            height: 'calc(100vh - 120px)',
+            cursor: isDragging ? 'grabbing' : scale > 1 ? 'grab' : 'zoom-in',
+          }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
@@ -125,7 +128,7 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
             alt={alt}
             width={1600}
             height={900}
-            className="w-full object-contain select-none"
+            className="h-full w-full object-contain select-none"
             style={{
               transform: `scale(${scale}) translate(${offset.x / scale}px, ${offset.y / scale}px)`,
               transformOrigin: 'center center',
@@ -160,7 +163,7 @@ export default function UsefulMapsGallery({ items }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-8 px-4 py-4">
+    <div className="flex flex-col gap-4 px-4 py-4">
       {items.map((item) => (
         <ZoomableImage key={item.src} {...item} alt={item.title} />
       ))}
