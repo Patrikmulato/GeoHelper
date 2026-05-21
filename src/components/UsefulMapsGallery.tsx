@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useCallback, useEffect, useReducer } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
 interface ZoomableImageProps {
   src: string;
@@ -12,11 +12,15 @@ interface ZoomableImageProps {
 
 function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // State drives rendering; refs mirror state for use inside non-React event listeners
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+
   const scaleRef = useRef(1);
   const offsetRef = useRef({ x: 0, y: 0 });
-  const [, forceRender] = useReducer((n) => n + 1, 0);
-  const drag = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null);
-  const isDragging = useRef(false);
+  const dragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null);
 
   const clampOffset = useCallback((x: number, y: number, s: number) => {
     const el = containerRef.current;
@@ -32,7 +36,8 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
   const reset = useCallback(() => {
     scaleRef.current = 1;
     offsetRef.current = { x: 0, y: 0 };
-    forceRender();
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
   }, []);
 
   useEffect(() => {
@@ -49,9 +54,11 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
       const factor = nextScale / prevScale;
       const rawX = cursorX - factor * (cursorX - offsetRef.current.x);
       const rawY = cursorY - factor * (cursorY - offsetRef.current.y);
+      const clamped = clampOffset(rawX, rawY, nextScale);
       scaleRef.current = nextScale;
-      offsetRef.current = clampOffset(rawX, rawY, nextScale);
-      forceRender();
+      offsetRef.current = clamped;
+      setScale(nextScale);
+      setOffset(clamped);
     };
 
     el.addEventListener('wheel', onWheel, { passive: false });
@@ -61,33 +68,31 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (scaleRef.current === 1) return;
     e.preventDefault();
-    isDragging.current = false;
-    drag.current = {
+    dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
       ox: offsetRef.current.x,
       oy: offsetRef.current.y,
     };
+    setIsDragging(true);
   }, []);
 
   const onMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (!drag.current) return;
-      isDragging.current = true;
-      const dx = e.clientX - drag.current.startX;
-      const dy = e.clientY - drag.current.startY;
-      offsetRef.current = clampOffset(drag.current.ox + dx, drag.current.oy + dy, scaleRef.current);
-      forceRender();
+      if (!dragRef.current) return;
+      const dx = e.clientX - dragRef.current.startX;
+      const dy = e.clientY - dragRef.current.startY;
+      const clamped = clampOffset(dragRef.current.ox + dx, dragRef.current.oy + dy, scaleRef.current);
+      offsetRef.current = clamped;
+      setOffset(clamped);
     },
     [clampOffset]
   );
 
   const onMouseUp = useCallback(() => {
-    drag.current = null;
+    dragRef.current = null;
+    setIsDragging(false);
   }, []);
-
-  const scale = scaleRef.current;
-  const { x, y } = offsetRef.current;
 
   return (
     <section id={id} className="scroll-mt-4">
@@ -105,7 +110,7 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
         <div
           ref={containerRef}
           className="w-full overflow-hidden"
-          style={{ cursor: isDragging.current ? 'grabbing' : scale > 1 ? 'grab' : 'zoom-in' }}
+          style={{ cursor: isDragging ? 'grabbing' : scale > 1 ? 'grab' : 'zoom-in' }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
@@ -118,7 +123,7 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
             height={900}
             className="w-full object-contain select-none"
             style={{
-              transform: `scale(${scale}) translate(${x / scale}px, ${y / scale}px)`,
+              transform: `scale(${scale}) translate(${offset.x / scale}px, ${offset.y / scale}px)`,
               transformOrigin: 'center center',
               willChange: 'transform',
             }}
