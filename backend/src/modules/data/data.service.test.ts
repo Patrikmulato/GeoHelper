@@ -77,4 +77,85 @@ describe('DataService.getFilteredCountries', () => {
     assert.ok(reds.countries.includes('Belgium'));
     assert.ok(!reds.countries.includes('Canada'));
   });
+
+  it('applies road line pattern filter', () => {
+    // 'yellow-white' pattern: Australia has it, Albania does not
+    const res = service.getFilteredCountries({
+      sideFilter: 'all',
+      lineFilter: 'yellow-white',
+      euPlateFilter: 'all',
+      cameraGenFilter: 'all',
+      coverageYearFilter: 'all',
+      carColorFilter: 'all',
+      vehicleTypeFilter: 'all',
+    });
+
+    assert.ok(res.countries.includes('Australia'));
+    assert.ok(!res.countries.includes('Albania'));
+  });
+
+  it('applies coverage year filter', () => {
+    // Albania has 2019 in its coverage range; Bosnia and Herzegovina does not
+    const res = service.getFilteredCountries({
+      sideFilter: 'all',
+      lineFilter: 'all',
+      euPlateFilter: 'all',
+      cameraGenFilter: 'all',
+      coverageYearFilter: '2019',
+      carColorFilter: 'all',
+      vehicleTypeFilter: 'all',
+    });
+
+    assert.ok(res.countries.includes('Albania'));
+    assert.ok(!res.countries.includes('Bosnia and Herzegovina'));
+  });
+
+  it('excludes country with no cameraGenData entry when cameraGenFilter is specific', () => {
+    // El Salvador has no entry in cameraGenData → missing data = excluded
+    const res = service.getFilteredCountries({
+      sideFilter: 'all',
+      lineFilter: 'all',
+      euPlateFilter: 'all',
+      cameraGenFilter: '1',
+      coverageYearFilter: 'all',
+      carColorFilter: 'all',
+      vehicleTypeFilter: 'all',
+    });
+
+    assert.ok(!res.countries.includes('El Salvador'));
+  });
+
+  it('excludes country with no euPlateData entry when euPlateFilter is yes', () => {
+    // El Salvador has no entry in euPlateData → typeof val !== 'boolean' → excluded
+    const res = service.getFilteredCountries({
+      sideFilter: 'all',
+      lineFilter: 'all',
+      euPlateFilter: 'yes',
+      cameraGenFilter: 'all',
+      coverageYearFilter: 'all',
+      carColorFilter: 'all',
+      vehicleTypeFilter: 'all',
+    });
+
+    assert.ok(!res.countries.includes('El Salvador'));
+  });
+
+  it('returns the intersection when combining sideFilter left and euPlateFilter yes', () => {
+    // Australia: left + EU plate yes → included
+    // Albania: right + EU plate yes → excluded by sideFilter
+    // Canada: right + no EU plate → excluded by both filters
+    const res = service.getFilteredCountries({
+      sideFilter: 'left',
+      lineFilter: 'all',
+      euPlateFilter: 'yes',
+      cameraGenFilter: 'all',
+      coverageYearFilter: 'all',
+      carColorFilter: 'all',
+      vehicleTypeFilter: 'all',
+    });
+
+    assert.ok(res.countries.includes('Australia'));
+    assert.ok(!res.countries.includes('Albania'));
+    assert.ok(!res.countries.includes('Canada'));
+  });
 });
