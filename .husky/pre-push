@@ -1,7 +1,6 @@
-echo "Running pre-push checks..."
+set -e
 
-echo "Type checking frontend..."
-npx tsc --noEmit
+echo "Running pre-push checks..."
 
 echo "Type checking backend..."
 pnpm --filter geoguessr-helper-backend exec tsc --noEmit
@@ -11,5 +10,8 @@ pnpm test
 
 echo "Building frontend..."
 pnpm build
+
+echo "Type checking frontend..."
+npx tsc --noEmit
 
 echo "All pre-push checks passed!"
