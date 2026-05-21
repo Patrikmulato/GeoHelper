@@ -21,6 +21,10 @@ const FILTER_CACHE_MAX_ENTRIES = 300;
 @Injectable()
 export class DataService {
   private readonly filterCache = new Map<string, FilterResponse>();
+  private readonly tooltipHtmlByCountry = Object.fromEntries(
+    Array.from(geoguessrCountries).map((country) => [country, this.buildTooltip(country)])
+  );
+  private cachedGeoJson: unknown = null;
 
   private getFilterCacheKey(filters: FilterRequestDto): string {
     return [
@@ -80,6 +84,8 @@ export class DataService {
   }
 
   getGeoJson() {
+    if (this.cachedGeoJson) return this.cachedGeoJson;
+
     // Support running from either workspace root or backend directory.
     const candidates = [
       join(process.cwd(), 'public', 'countries.geo.json'),
@@ -91,14 +97,11 @@ export class DataService {
       throw new Error('countries.geo.json not found');
     }
 
-    return JSON.parse(readFileSync(sourcePath, 'utf-8'));
+    this.cachedGeoJson = JSON.parse(readFileSync(sourcePath, 'utf-8'));
+    return this.cachedGeoJson;
   }
 
   getMapData() {
-    const tooltipHtmlByCountry = Object.fromEntries(
-      Array.from(geoguessrCountries).map((country) => [country, this.buildTooltip(country)])
-    );
-
     return {
       aliases: geoJsonNameAliases,
       geoguessrCountries: Array.from(geoguessrCountries),
@@ -111,7 +114,7 @@ export class DataService {
       coverageYearsData,
       carColorData,
       vehicleTypeData,
-      tooltipHtmlByCountry,
+      tooltipHtmlByCountry: this.tooltipHtmlByCountry,
     };
   }
 
