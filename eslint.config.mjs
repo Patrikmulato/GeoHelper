@@ -12,8 +12,9 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
-    // Backend compiled output
+    // Generated artifacts
     'backend/dist/**',
+    'coverage/**',
   ]),
 ]);
 

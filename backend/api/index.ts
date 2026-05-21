@@ -1,32 +1,31 @@
 import 'reflect-metadata';
-import express from 'express';
-import type { Request, Response } from 'express';
 import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { AppModule } from '../src/app.module.js';
 import { setupApp } from '../src/app-setup.js';
 
-let cachedHandler: ReturnType<typeof express> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let cachedFastify: any = null;
 
 async function getHandler() {
-  if (cachedHandler) {
-    return cachedHandler;
+  if (cachedFastify) {
+    return cachedFastify;
   }
 
-  const expressApp = express();
-  const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
+  const adapter = new FastifyAdapter();
+  const nestApp = await NestFactory.create<NestFastifyApplication>(AppModule, adapter);
   setupApp(nestApp, { withGlobalPrefix: true });
   await nestApp.init();
 
-  cachedHandler = expressApp;
-  return cachedHandler;
+  const fastify = adapter.getInstance();
+  await fastify.ready();
+
+  cachedFastify = fastify;
+  return cachedFastify;
 }
 
-export default async function handler(req: Request, res: Response) {
-  const nestHandler = await getHandler();
-  if (!nestHandler) {
-    res.status(500).send('Failed to initialize the server');
-    return;
-  }
-  return nestHandler(req, res);
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  const fastify = await getHandler();
+  fastify.server.emit('request', req, res);
 }

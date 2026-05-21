@@ -5,7 +5,7 @@ Runs on port 3001 locally; deployed as Vercel serverless via `api/index.ts`.
 
 ## Tech Stack
 
-- NestJS 11 (Express adapter)
+- NestJS 11 (Fastify adapter)
 - class-validator + class-transformer (DTO validation with `ValidationPipe`)
 - tsx (TypeScript executor for scripts and tests)
 - Puppeteer (guide crawler)
