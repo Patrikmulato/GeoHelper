@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import FilterDropdown from '@/components/FilterDropdown';
 import { fetchFilteredCountries, fetchGeoJson, fetchMapData } from '@/lib/api/map-data';
 import type { CarColor, MapDataResponse, RoadLinePattern, VehicleType } from '@/types/map-data';
@@ -229,7 +230,20 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#262b31] text-white">
       <header className="shrink-0 border-b border-zinc-800 bg-zinc-900/94 px-5 py-4 shadow-lg">
-        <h1 className="text-lg font-bold text-white">GeoGuessr Helper</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold text-white">GeoGuessr Helper</h1>
+          <nav className="flex items-center gap-1">
+            <span className="rounded-lg bg-zinc-700/60 px-3 py-1.5 text-sm font-medium text-white">
+              World Map
+            </span>
+            <Link
+              href="/useful-maps"
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+            >
+              Useful Maps
+            </Link>
+          </nav>
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
