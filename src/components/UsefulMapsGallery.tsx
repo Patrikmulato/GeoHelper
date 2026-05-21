@@ -82,7 +82,11 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
       if (!dragRef.current) return;
       const dx = e.clientX - dragRef.current.startX;
       const dy = e.clientY - dragRef.current.startY;
-      const clamped = clampOffset(dragRef.current.ox + dx, dragRef.current.oy + dy, scaleRef.current);
+      const clamped = clampOffset(
+        dragRef.current.ox + dx,
+        dragRef.current.oy + dy,
+        scaleRef.current
+      );
       offsetRef.current = clamped;
       setOffset(clamped);
     },

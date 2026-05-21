@@ -1,5 +1,11 @@
 echo "Running pre-push checks..."
 
+echo "Linting..."
+pnpm lint
+
+echo "Checking formatting..."
+pnpm format:check
+
 echo "Type checking frontend..."
 npx tsc --noEmit
 
