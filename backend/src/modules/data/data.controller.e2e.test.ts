@@ -110,8 +110,9 @@ describe('DataController /api/data/filter validation (e2e)', () => {
   });
 
   it('POST /api/data/filter with a missing required field returns 400', async () => {
-    const payloadWithoutSideFilter = { ...validPayload };
-    delete payloadWithoutSideFilter.sideFilter;
+    const payloadWithoutSideFilter = Object.fromEntries(
+      Object.entries(validPayload).filter(([key]) => key !== 'sideFilter')
+    );
 
     const res = await request(app.getHttpServer())
       .post('/api/data/filter')
