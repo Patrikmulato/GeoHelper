@@ -231,7 +231,6 @@ export default function Home() {
       {/* Persistent filter sidebar */}
       <aside className="flex w-52 shrink-0 flex-col border-r border-zinc-800 bg-[#181c22]">
         <div className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
-          {isFilterLoading && <p className="mb-1 text-[11px] text-zinc-500">Applying filters…</p>}
           {filterError && <p className="mb-1 text-[11px] text-red-400">{filterError}</p>}
 
           <div>

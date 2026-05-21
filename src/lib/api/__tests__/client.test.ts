@@ -44,15 +44,17 @@ describe('ApiClient', () => {
       json: jest.fn().mockResolvedValueOnce({ message: 'Resource not found' }),
     });
 
-    let thrown: unknown;
-    try {
-      await apiClient.get('/api/data/missing');
-    } catch (e) {
-      thrown = e;
-    }
-    expect(thrown).toBeInstanceOf(ApiError);
-    expect((thrown as ApiError).status).toBe(404);
-    expect((thrown as ApiError).message).toBe('Resource not found');
+    await expect(apiClient.get('/api/data/missing')).rejects.toBeInstanceOf(ApiError);
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      json: jest.fn().mockResolvedValueOnce({ message: 'Resource not found' }),
+    });
+    await expect(apiClient.get('/api/data/missing')).rejects.toMatchObject({
+      status: 404,
+      message: 'Resource not found',
+    });
   });
 
   it('falls back to statusText when error response body is not valid JSON', async () => {
