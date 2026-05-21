@@ -24,13 +24,13 @@ export default function WorldMap({ geojson, getColor, getTooltip }: WorldMapProp
       zoom: 2,
       minZoom: 2,
       maxZoom: 8,
-      dragging: true,
+      dragging: false,
       scrollWheelZoom: true,
-      doubleClickZoom: true,
-      boxZoom: true,
-      keyboard: true,
-      touchZoom: true,
-      zoomControl: true,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      touchZoom: false,
+      zoomControl: false,
     });
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -103,10 +103,14 @@ export default function WorldMap({ geojson, getColor, getTooltip }: WorldMapProp
       },
     }).addTo(mapRef.current);
 
-    mapRef.current.fitBounds(layerRef.current.getBounds(), {
-      paddingTopLeft: [24, 120],
-      paddingBottomRight: [24, 24],
-    });
+    // Fit to world bounds excluding Antarctica so it doesn't dominate the view
+    mapRef.current.fitBounds(
+      [
+        [-58, -175],
+        [82, 175],
+      ],
+      { padding: [24, 24] }
+    );
   }, [geojson, getColor, getTooltip, getCountryName]);
 
   return <div ref={containerRef} className="h-full w-full" />;
