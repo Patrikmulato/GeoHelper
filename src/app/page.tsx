@@ -30,7 +30,6 @@ export default function Home() {
   const [mapData, setMapData] = useState<MapDataResponse | null>(null);
   const [filteredCountries, setFilteredCountries] = useState<string[] | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [initialError, setInitialError] = useState<string | null>(null);
   const [filterError, setFilterError] = useState<string | null>(null);
   const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -68,7 +67,6 @@ export default function Home() {
     let active = true;
 
     async function loadFilteredCountries() {
-      setIsFilterLoading(true);
       setFilterError(null);
       try {
         const res = await fetchFilteredCountries({
@@ -85,9 +83,6 @@ export default function Home() {
       } catch {
         if (!active) return;
         setFilterError('Failed to apply filters from backend.');
-      } finally {
-        if (!active) return;
-        setIsFilterLoading(false);
       }
     }
 
@@ -231,7 +226,6 @@ export default function Home() {
       {/* Persistent filter sidebar */}
       <aside className="flex w-52 shrink-0 flex-col border-r border-zinc-800 bg-[#181c22]">
         <div className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
-          {isFilterLoading && <p className="mb-1 text-[11px] text-zinc-500">Applying filters…</p>}
           {filterError && <p className="mb-1 text-[11px] text-red-400">{filterError}</p>}
 
           <div>
