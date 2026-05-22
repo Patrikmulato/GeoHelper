@@ -2,8 +2,8 @@
 // Do not edit by hand. Run: pnpm --filter geoguessr-helper-backend sync:data
 
 export type CameraGen = 1 | 2 | 3 | 4;
-export type CarColor = "black" | "blue" | "gray" | "red" | "striped" | "white";
-export type VehicleType = "car" | "suv" | "truck";
+export type CarColor = "black" | "blue" | "gray" | "red" | "striped" | "white" | "white-blue" | "white-blue-white";
+export type VehicleType = "car" | "roofrack" | "suv" | "truck";
 
 /** Whether a country uses the EU-style blue side-strip licence plate. */
 export const euPlateData: Record<string, boolean> = {

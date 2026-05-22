@@ -40,10 +40,10 @@ type FieldExtraction = {
 type CountryAIExtraction = {
   slug: string;
   roadLines: FieldExtraction;
-  carColor: FieldExtraction;
+  carColor: FieldExtraction & { explanation?: string };
   cameraGen: FieldExtraction;
   coverageYears: FieldExtraction;
-  vehicleType: FieldExtraction;
+  vehicleType: FieldExtraction & { comment?: string };
   extractionError: string | null;
 };
 
@@ -146,7 +146,7 @@ function main(): void {
         const cleaned = unique(
           (data.carColor.values as string[])
             .map((v) => v.toLowerCase().replace('grey', 'gray'))
-            .filter((v) => CAR_COLOR_ALLOWED.has(v))
+            .filter((v) => CAR_COLOR_ALLOWED.has(v) && v !== 'other')
         );
         if (cleaned.length > 0) {
           geoColorEntries.push({ key: countryName, valueLiteral: JSON.stringify(cleaned) });
@@ -156,13 +156,16 @@ function main(): void {
       skippedBelowThreshold++;
     }
 
-    // vehicleType
+    // vehicleType — "other" is review-only, never merged to data files
     if (data.vehicleType.confidence >= threshold && data.vehicleType.values.length > 0) {
-      if (geoVehicleExisting.has(countryName)) {
+      const values = data.vehicleType.values as string[];
+      if (values.includes('other')) {
+        // intentionally not merged; comment is visible in the review JSON
+      } else if (geoVehicleExisting.has(countryName)) {
         skippedAlreadyExists++;
       } else {
-        const pick = pickVehicleType(data.vehicleType.values as string[]);
-        if (pick && pick !== 'car') {
+        const pick = pickVehicleType(values);
+        if (pick && pick !== 'other') {
           geoVehicleEntries.push({ key: countryName, valueLiteral: JSON.stringify(pick) });
         }
       }

@@ -43,13 +43,16 @@ type FieldExtraction = {
   reasoning: string;
 };
 
+type VehicleTypeExtraction = FieldExtraction & { comment?: string };
+type CarColorExtraction = FieldExtraction & { explanation?: string };
+
 type CountryAIExtraction = {
   slug: string;
   roadLines: FieldExtraction;
-  carColor: FieldExtraction;
+  carColor: CarColorExtraction;
   cameraGen: FieldExtraction;
   coverageYears: FieldExtraction;
-  vehicleType: FieldExtraction;
+  vehicleType: VehicleTypeExtraction;
   extractionError: string | null;
 };
 
@@ -67,10 +70,10 @@ type AIExtractionOutput = {
 
 type ExtractionToolInput = {
   roadLines: { values: string[]; confidence: number; reasoning: string };
-  carColor: { values: string[]; confidence: number; reasoning: string };
+  carColor: { values: string[]; confidence: number; reasoning: string; explanation?: string };
   cameraGen: { values: number[]; confidence: number; reasoning: string };
   coverageYears: { values: number[]; confidence: number; reasoning: string };
-  vehicleType: { values: string[]; confidence: number; reasoning: string };
+  vehicleType: { values: string[]; confidence: number; reasoning: string; comment?: string };
 };
 
 type CountryMaster = {
@@ -138,8 +141,12 @@ Look for: "outside X inside Y", "X center line", "Y outer lines", "X middle line
 
 ### carColor
 The color of the Google Street View capture vehicle.
-Valid values: black, blue, gray, red, striped, white
-"striped" = car with colored stripes or decals. Multiple colors valid if different generations use different cars.
+Valid values: black, blue, gray, red, striped, white, white-blue, white-blue-white, other
+- "striped" = car with colored stripes or decals
+- "white-blue" = car with both white and blue coloring
+- "white-blue-white" = car with white-blue-white pattern
+- "other" = any unusual color not covered above; you MUST also populate the explanation field describing it
+Multiple colors valid if different generations use different cars.
 Look for: "X car", "Google car is X", "blue Street View car", "striped car", explicit color descriptions of the vehicle.
 
 ### cameraGen
@@ -154,9 +161,12 @@ Look for: copyright year labels ("© 2022 Google"), "coverage from YYYY", "updat
 Be conservative — only years explicitly linked to Street View coverage.
 
 ### vehicleType
-Non-standard capture vehicle. Valid: "suv", "truck" (omit "car").
-"truck" covers: truck, pickup truck, commercial vehicle, trekker.
-ONLY set if the guide text explicitly names a non-car vehicle type. Leave empty if not mentioned.
+The Google Street View capture vehicle type. Valid: "car", "truck", "roofrack", "other".
+- "car" = standard car (set only when the guide explicitly confirms it)
+- "truck" = truck, pickup truck, commercial vehicle, trekker
+- "roofrack" = car with a visible roof rack mounted on top (e.g. "grey car with visible roof rack")
+- "other" = any unusual vehicle not covered above; you MUST also populate the comment field describing it
+Leave empty if the vehicle type is not mentioned at all.
 
 ## Confidence Scoring
 - 0.9–1.0: Multiple explicit, consistent mentions
@@ -176,7 +186,7 @@ Expected extraction:
 - cameraGen: values=[1,2,3,4], confidence=0.95 (all four generations explicitly named)
 - carColor: values=[], confidence=0.0 (no car color mentioned)
 - coverageYears: values=[], confidence=0.0 (no specific years cited)
-- vehicleType: values=[], confidence=0.0 (standard car, not mentioned)
+- vehicleType: values=["car"], confidence=0.88 ("cars" mentioned many times explicitly — "Generation 3 car", "the car isn’t blurred ")
 
 ### Example 2: Bangladesh
 <guide_text>
@@ -187,7 +197,7 @@ Expected extraction:
 - cameraGen: values=[3,4], confidence=0.95 (both explicitly named)
 - coverageYears: values=[2022,2023], confidence=0.90 (explicitly from copyright labels)
 - roadLines: values=[], confidence=0.0 (not mentioned)
-- vehicleType: values=[], confidence=0.0 (standard car)
+- vehicleType: values=["car"], confidence=0.88 ("cars" mentioned many times explicitly — "three Street View cars", "two cars are documented", etc.)
 
 ### Example 3: New Zealand
 <guide_text>
@@ -195,20 +205,20 @@ New Zealand normally uses white outer road lines. Yellow dashed center lines are
 </guide_text>
 Expected extraction:
 - roadLines: values=["white-white","white-yellow","yellow-white"], confidence=0.85 (multiple explicit patterns: white outer + white center, white outer + yellow center, yellow outer + white/no center)
-- carColor: values=[], confidence=0.0
-- cameraGen: values=[], confidence=0.0
-- coverageYears: values=[], confidence=0.0
-- vehicleType: values=[], confidence=0.0
+- carColor: values=["white-blue", "white-blue-white"], confidence=0.85 ("car with a white and blue", "car features a white-blue-white")
+- cameraGen: values=[2,3,4], confidence=0.95 ("Generation 2", "Generation 3", "Generation 4")
+- coverageYears: values=[2012], confidence=0.80 ("roads on coverage from 2012, no other years mentioned")
+- vehicleType: values=["car"], confidence=0.95 ("white Street View car", "Car metas")
 
 ### Example 4: Australia
 <guide_text>
 Google Street View in Australia primarily uses a large truck rather than a standard car. In some regions, a distinctive blue Generation 4 car is used instead. The Stuart Highway in the Northern Territory is captured with a blue car. Standard white cars are used in most metropolitan coverage areas. Generation 3 coverage uses the older antenna-equipped car.
 </guide_text>
 Expected extraction:
-- vehicleType: values=["truck"], confidence=0.82 (explicitly stated as primary vehicle)
+- vehicleType: values=["truck","car"], confidence=0.90 (both explicitly named — truck as primary, car in specific regions)
 - carColor: values=["blue","white"], confidence=0.88 (blue car and white car both explicitly mentioned)
 - cameraGen: values=[3,4], confidence=0.88 (generations 3 and 4 both named)
-- roadLines: values=[], confidence=0.0 (not mentioned)
+- roadLines: values=[""], confidence=0.0 (not mentioned)
 - coverageYears: values=[], confidence=0.0 (no specific years)
 
 Always call the extract_country_data tool with your findings. Return empty arrays with confidence 0.0 for fields with no evidence.`;
@@ -256,10 +266,27 @@ const EXTRACTION_TOOL: Anthropic.Tool = {
         properties: {
           values: {
             type: 'array',
-            items: { type: 'string', enum: ['black', 'blue', 'gray', 'red', 'striped', 'white'] },
+            items: {
+              type: 'string',
+              enum: [
+                'black',
+                'blue',
+                'gray',
+                'red',
+                'striped',
+                'white',
+                'white-blue',
+                'white-blue-white',
+                'other',
+              ],
+            },
           },
           confidence: { type: 'number', minimum: 0, maximum: 1 },
           reasoning: { type: 'string' },
+          explanation: {
+            type: 'string',
+            description: 'Required when values contains "other" — describe the unusual color',
+          },
         },
       },
       cameraGen: {
@@ -290,15 +317,19 @@ const EXTRACTION_TOOL: Anthropic.Tool = {
       },
       vehicleType: {
         type: 'object',
-        description: 'Non-standard capture vehicle type ("suv" or "truck" only)',
+        description: 'Capture vehicle type ("car", "truck", "roofrack", or "other")',
         required: ['values', 'confidence', 'reasoning'],
         properties: {
           values: {
             type: 'array',
-            items: { type: 'string', enum: ['suv', 'truck'] },
+            items: { type: 'string', enum: ['car', 'truck', 'roofrack', 'other'] },
           },
           confidence: { type: 'number', minimum: 0, maximum: 1 },
           reasoning: { type: 'string' },
+          comment: {
+            type: 'string',
+            description: 'Required when values contains "other" — describe the unusual vehicle',
+          },
         },
       },
     },
@@ -347,19 +378,34 @@ function validateAndCleanField(
 }
 
 const VALID_GENS = new Set([1, 2, 3, 4]);
-const VALID_VEHICLE_TYPES = new Set(['suv', 'truck']);
+const VALID_VEHICLE_TYPES = new Set(['car', 'truck', 'roofrack', 'other']);
 
-type ValidatedFields = Record<
-  'roadLines' | 'carColor' | 'cameraGen' | 'coverageYears' | 'vehicleType',
-  FieldExtraction
->;
+type ValidatedFields = {
+  roadLines: FieldExtraction;
+  carColor: CarColorExtraction;
+  cameraGen: FieldExtraction;
+  coverageYears: FieldExtraction;
+  vehicleType: VehicleTypeExtraction;
+};
 
 function validateExtraction(raw: ExtractionToolInput): ValidatedFields {
   const coverageYearAllowed = new Set(Array.from({ length: 2035 - 2007 + 1 }, (_, i) => 2007 + i));
 
+  const carColorBase = validateAndCleanField(raw.carColor, CAR_COLOR_ALLOWED, 'string');
+  const carColor: CarColorExtraction =
+    carColorBase.values.includes('other') && raw.carColor.explanation
+      ? { ...carColorBase, explanation: raw.carColor.explanation }
+      : carColorBase;
+
+  const vehicleBase = validateAndCleanField(raw.vehicleType, VALID_VEHICLE_TYPES, 'string');
+  const vehicleType: VehicleTypeExtraction =
+    vehicleBase.values.includes('other') && raw.vehicleType.comment
+      ? { ...vehicleBase, comment: raw.vehicleType.comment }
+      : vehicleBase;
+
   return {
     roadLines: validateAndCleanField(raw.roadLines, ROAD_LINE_ALLOWED, 'string'),
-    carColor: validateAndCleanField(raw.carColor, CAR_COLOR_ALLOWED, 'string'),
+    carColor,
     cameraGen: validateAndCleanField(
       raw.cameraGen as Parameters<typeof validateAndCleanField>[0],
       VALID_GENS,
@@ -370,7 +416,7 @@ function validateExtraction(raw: ExtractionToolInput): ValidatedFields {
       coverageYearAllowed,
       'number'
     ),
-    vehicleType: validateAndCleanField(raw.vehicleType, VALID_VEHICLE_TYPES, 'string'),
+    vehicleType,
   };
 }
 
@@ -503,6 +549,7 @@ async function main(): Promise<void> {
   const threshold = Number(process.env.AI_CONFIDENCE_THRESHOLD ?? '0.7');
   const delayMs = Number(process.env.AI_CRAWL_DELAY_MS ?? '1000');
   const limit = process.env.AI_CRAWL_LIMIT ? Number(process.env.AI_CRAWL_LIMIT) : undefined;
+  const countryFilter = process.env.AI_COUNTRY?.toLowerCase().trim();
 
   if (!fs.existsSync(MASTER_PATH)) {
     console.error(`Missing: ${MASTER_PATH}. Run consolidate:guides first.`);
@@ -513,6 +560,17 @@ async function main(): Promise<void> {
   const client = new Anthropic({ apiKey });
 
   let slugs = Object.keys(master.countries);
+  if (countryFilter) {
+    slugs = slugs.filter(
+      (s) => s === countryFilter || titleCaseCountry(s).toLowerCase() === countryFilter
+    );
+    if (slugs.length === 0) {
+      console.error(
+        `No country found matching "${countryFilter}". Available slugs include: ${Object.keys(master.countries).slice(0, 5).join(', ')}...`
+      );
+      process.exit(1);
+    }
+  }
   if (limit) slugs = slugs.slice(0, limit);
 
   const total = slugs.length;

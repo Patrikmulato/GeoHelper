@@ -15,7 +15,17 @@ export const ROAD_LINE_ALLOWED = new Set([
   'blue-blue',
 ]);
 
-export const CAR_COLOR_ALLOWED = new Set(['black', 'blue', 'gray', 'red', 'striped', 'white']);
+export const CAR_COLOR_ALLOWED = new Set([
+  'black',
+  'blue',
+  'gray',
+  'red',
+  'striped',
+  'white',
+  'white-blue',
+  'white-blue-white',
+  'other',
+]);
 
 export const COUNTRY_MAP: Record<string, string> = {
   Curacao: 'Curaçao',
@@ -127,11 +137,15 @@ export function unique<T>(arr: T[]): T[] {
   return Array.from(new Set(arr));
 }
 
-export function pickVehicleType(values: string[]): 'truck' | 'suv' | 'car' | null {
+export function pickVehicleType(
+  values: string[]
+): 'truck' | 'roofrack' | 'suv' | 'car' | 'other' | null {
   const normalized = new Set(values.map((v) => v.toLowerCase()));
   if (normalized.has('truck') || normalized.has('pickup') || normalized.has('commercial-vehicle'))
     return 'truck';
+  if (normalized.has('roofrack')) return 'roofrack';
   if (normalized.has('suv')) return 'suv';
   if (normalized.has('car')) return 'car';
+  if (normalized.has('other')) return 'other';
   return null;
 }
