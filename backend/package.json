@@ -11,10 +11,13 @@
     "test": "tsx --test src/**/*.test.ts",
     "sync:data": "tsx scripts/sync-geocarhelpdesk.ts && pnpm merge:crawlers",
     "sync:data:pull": "git -C ../../GeoCarHelpDesk pull --ff-only && pnpm sync:data",
-    "crawl:guides": "tsx crawlers/crawl-guides.ts",
-    "consolidate:guides": "tsx crawlers/consolidate.ts",
-    "extract:guides": "tsx crawlers/extract-guide-data.ts",
-    "merge:crawlers": "tsx crawlers/append-crawler-data-to-backend-data.ts"
+    "crawl:guides": "tsx crawlers/plonk/crawl-guides.ts",
+    "consolidate:guides": "tsx crawlers/plonk/consolidate.ts",
+    "extract:guides": "tsx crawlers/plonk/extract-guide-data.ts",
+    "merge:crawlers": "tsx crawlers/plonk/append-crawler-data-to-backend-data.ts",
+    "extract:guides:ai": "tsx crawlers/agent/extract-guide-data-ai.ts",
+    "merge:ai": "tsx crawlers/agent/merge-ai-extraction.ts",
+    "pipeline:ai": "pnpm extract:guides:ai && pnpm merge:ai"
   },
   "dependencies": {
     "@nestjs/common": "11.1.21",
@@ -30,6 +33,7 @@
     "@nestjs/testing": "11.1.21",
     "@types/node": "25.9.0",
     "@types/supertest": "7.2.0",
+    "@anthropic-ai/sdk": "^0.52.0",
     "puppeteer": "25.0.4",
     "supertest": "7.2.2",
     "tsx": "4.22.3",
