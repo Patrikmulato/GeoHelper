@@ -44,3 +44,6 @@ next-env.d.ts
 
 # crawler output – never commit scraped data
 backend/crawlers/
+
+# codemie
+.codemie/
