@@ -2,7 +2,7 @@
   "name": "geoguessr-helper-backend",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.33.4",
+  "packageManager": "pnpm@11.5.1",
   "scripts": {
     "predev": "pnpm sync:data:pull",
     "dev": "tsx watch src/main.ts",
@@ -20,9 +20,9 @@
     "pipeline:ai": "pnpm extract:guides:ai && pnpm merge:ai"
   },
   "dependencies": {
-    "@nestjs/common": "11.1.21",
-    "@nestjs/core": "11.1.21",
-    "@nestjs/platform-fastify": "11.1.21",
+    "@nestjs/common": "11.1.24",
+    "@nestjs/core": "11.1.24",
+    "@nestjs/platform-fastify": "11.1.24",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
     "fastify": "^5.0.0",
@@ -30,13 +30,13 @@
     "rxjs": "7.8.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "11.1.21",
-    "@types/node": "25.9.0",
+    "@nestjs/testing": "11.1.24",
+    "@types/node": "25.9.1",
     "@types/supertest": "7.2.0",
     "@anthropic-ai/sdk": "^0.52.0",
-    "puppeteer": "25.0.4",
+    "puppeteer": "25.1.0",
     "supertest": "7.2.2",
-    "tsx": "4.22.3",
+    "tsx": "4.22.4",
     "typescript": "6.0.3"
   }
 }

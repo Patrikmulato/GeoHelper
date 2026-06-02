@@ -3,12 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.33.4",
-  "pnpm": {
-    "overrides": {
-      "js-yaml": "4.1.1"
-    }
-  },
+  "packageManager": "pnpm@11.5.1",
   "engines": {
     "node": ">=22.0.0"
   },
@@ -33,32 +28,32 @@
   },
   "dependencies": {
     "leaflet": "1.9.4",
-    "next": "16.2.6",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
+    "next": "16.2.7",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
     "react-leaflet": "5.0.0",
     "react-zoom-pan-pinch": "^4.0.3"
   },
   "devDependencies": {
-    "@commitlint/cli": "21.0.1",
-    "@commitlint/config-conventional": "21.0.1",
+    "@commitlint/cli": "21.0.2",
+    "@commitlint/config-conventional": "21.0.2",
     "@tailwindcss/postcss": "4.3.0",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.1",
     "@types/jest": "30.0.0",
     "@types/leaflet": "1.9.21",
-    "@types/node": "25.9.0",
-    "@types/react": "19.2.14",
+    "@types/node": "25.9.1",
+    "@types/react": "19.2.16",
     "@types/react-dom": "19.2.3",
     "codecov": "3.8.3",
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.0",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.2.7",
     "husky": "9.1.7",
     "jest": "30.4.2",
     "jest-environment-jsdom": "30.4.1",
-    "lint-staged": "17.0.5",
+    "lint-staged": "17.0.7",
     "prettier": "3.8.3",
     "tailwindcss": "4.3.0",
     "typescript": "6.0.3"

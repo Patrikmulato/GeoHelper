@@ -1,3 +1,11 @@
 packages:
   - .
   - backend
+allowBuilds:
+  '@nestjs/core': true
+  esbuild: true
+  puppeteer: true
+  sharp: true
+  unrs-resolver: true
+overrides:
+  js-yaml: 4.2.0
