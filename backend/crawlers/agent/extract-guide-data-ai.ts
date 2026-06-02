@@ -4,17 +4,21 @@
  * Reads countries_master.json, calls Claude per country to extract structured
  * GeoGuessr metadata, and writes crawler-extracted-ai.json.
  *
+ * Uses the `claude` CLI (Claude Code) — no separate API key required.
+ * Authentication reuses your existing Claude Code session.
+ *
  * Run: pnpm --filter geoguessr-helper-backend extract:guides:ai
- * Env: ANTHROPIC_API_KEY   (required)
- *      AI_MODEL            (optional, default: claude-haiku-4-5-20251001)
+ * Env: CLAUDE_BIN          (optional) path to claude binary; defaults to ~/.local/bin/claude
+ *      AI_MODEL            (optional, default: haiku) model alias or full ID
  *      AI_CONFIDENCE_THRESHOLD (optional, default: 0.7)
  *      AI_CRAWL_DELAY_MS   (optional, default: 1000)
  *      AI_CRAWL_LIMIT      (optional, for testing with N countries)
+ *      AI_COUNTRY          (optional, test a single country slug e.g. "namibia")
  * Output: backend/crawlers/data/crawler-extracted-ai.json
  *         backend/crawlers/data/crawler-extraction-ai-review.json
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -223,113 +227,110 @@ Expected extraction:
 
 Always call the extract_country_data tool with your findings. Return empty arrays with confidence 0.0 for fields with no evidence.`;
 
-const EXTRACTION_TOOL: Anthropic.Tool = {
-  name: 'extract_country_data',
-  description: 'Extract Google Street View metadata from a GeoGuessr country guide',
-  input_schema: {
-    type: 'object' as const,
-    required: ['roadLines', 'carColor', 'cameraGen', 'coverageYears', 'vehicleType'],
-    properties: {
-      roadLines: {
-        type: 'object',
-        description: 'Road line marking patterns (outside-inside color format)',
-        required: ['values', 'confidence', 'reasoning'],
-        properties: {
-          values: {
-            type: 'array',
-            items: {
-              type: 'string',
-              enum: [
-                'yellow-white',
-                'white-white',
-                'white-yellow',
-                'yellow-yellow',
-                'white-whiteyellow',
-                'yellow-whiteyellow',
-                'white-whitegreen',
-                'red-white',
-                'red-yellow',
-                'blue-orange',
-                'blue-white',
-                'blue-blue',
-              ],
-            },
-          },
-          confidence: { type: 'number', minimum: 0, maximum: 1 },
-          reasoning: { type: 'string' },
-        },
-      },
-      carColor: {
-        type: 'object',
-        description: 'Color(s) of the Google Street View vehicle',
-        required: ['values', 'confidence', 'reasoning'],
-        properties: {
-          values: {
-            type: 'array',
-            items: {
-              type: 'string',
-              enum: [
-                'black',
-                'blue',
-                'gray',
-                'red',
-                'striped',
-                'white',
-                'white-blue',
-                'white-blue-white',
-                'other',
-              ],
-            },
-          },
-          confidence: { type: 'number', minimum: 0, maximum: 1 },
-          reasoning: { type: 'string' },
-          explanation: {
+// JSON schema passed to `claude --json-schema` for structured output enforcement
+const EXTRACTION_SCHEMA = {
+  type: 'object',
+  required: ['roadLines', 'carColor', 'cameraGen', 'coverageYears', 'vehicleType'],
+  properties: {
+    roadLines: {
+      type: 'object',
+      description: 'Road line marking patterns (outside-inside color format)',
+      required: ['values', 'confidence', 'reasoning'],
+      properties: {
+        values: {
+          type: 'array',
+          items: {
             type: 'string',
-            description: 'Required when values contains "other" — describe the unusual color',
+            enum: [
+              'yellow-white',
+              'white-white',
+              'white-yellow',
+              'yellow-yellow',
+              'white-whiteyellow',
+              'yellow-whiteyellow',
+              'white-whitegreen',
+              'red-white',
+              'red-yellow',
+              'blue-orange',
+              'blue-white',
+              'blue-blue',
+            ],
           },
         },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reasoning: { type: 'string' },
       },
-      cameraGen: {
-        type: 'object',
-        description: 'Camera generations present in this country',
-        required: ['values', 'confidence', 'reasoning'],
-        properties: {
-          values: {
-            type: 'array',
-            items: { type: 'integer', enum: [1, 2, 3, 4] },
-          },
-          confidence: { type: 'number', minimum: 0, maximum: 1 },
-          reasoning: { type: 'string' },
-        },
-      },
-      coverageYears: {
-        type: 'object',
-        description: 'Years when Street View coverage was captured (2007–2035)',
-        required: ['values', 'confidence', 'reasoning'],
-        properties: {
-          values: {
-            type: 'array',
-            items: { type: 'integer', minimum: 2007, maximum: 2035 },
-          },
-          confidence: { type: 'number', minimum: 0, maximum: 1 },
-          reasoning: { type: 'string' },
-        },
-      },
-      vehicleType: {
-        type: 'object',
-        description: 'Capture vehicle type ("car", "truck", "roofrack", or "other")',
-        required: ['values', 'confidence', 'reasoning'],
-        properties: {
-          values: {
-            type: 'array',
-            items: { type: 'string', enum: ['car', 'truck', 'roofrack', 'other'] },
-          },
-          confidence: { type: 'number', minimum: 0, maximum: 1 },
-          reasoning: { type: 'string' },
-          comment: {
+    },
+    carColor: {
+      type: 'object',
+      description: 'Color(s) of the Google Street View vehicle',
+      required: ['values', 'confidence', 'reasoning'],
+      properties: {
+        values: {
+          type: 'array',
+          items: {
             type: 'string',
-            description: 'Required when values contains "other" — describe the unusual vehicle',
+            enum: [
+              'black',
+              'blue',
+              'gray',
+              'red',
+              'striped',
+              'white',
+              'white-blue',
+              'white-blue-white',
+              'other',
+            ],
           },
+        },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reasoning: { type: 'string' },
+        explanation: {
+          type: 'string',
+          description: 'Required when values contains "other" — describe the unusual color',
+        },
+      },
+    },
+    cameraGen: {
+      type: 'object',
+      description: 'Camera generations present in this country',
+      required: ['values', 'confidence', 'reasoning'],
+      properties: {
+        values: {
+          type: 'array',
+          items: { type: 'integer', enum: [1, 2, 3, 4] },
+        },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reasoning: { type: 'string' },
+      },
+    },
+    coverageYears: {
+      type: 'object',
+      description: 'Years when Street View coverage was captured (2007–2035)',
+      required: ['values', 'confidence', 'reasoning'],
+      properties: {
+        values: {
+          type: 'array',
+          items: { type: 'integer', minimum: 2007, maximum: 2035 },
+        },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reasoning: { type: 'string' },
+      },
+    },
+    vehicleType: {
+      type: 'object',
+      description: 'Capture vehicle type ("car", "truck", "roofrack", or "other")',
+      required: ['values', 'confidence', 'reasoning'],
+      properties: {
+        values: {
+          type: 'array',
+          items: { type: 'string', enum: ['car', 'truck', 'roofrack', 'other'] },
+        },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reasoning: { type: 'string' },
+        comment: {
+          type: 'string',
+          description: 'Required when values contains "other" — describe the unusual vehicle',
         },
       },
     },
@@ -420,10 +421,87 @@ function validateExtraction(raw: ExtractionToolInput): ValidatedFields {
   };
 }
 
+// ─── Claude CLI call ──────────────────────────────────────────────────────────
+
+function resolveClaude(): string {
+  const fromEnv = process.env.CLAUDE_BIN?.trim();
+  if (fromEnv) return fromEnv;
+  const localBin = path.join(process.env.HOME ?? '~', '.local', 'bin', 'claude');
+  if (fs.existsSync(localBin)) return localBin;
+  return 'claude';
+}
+
+function callClaude(model: string, userMessage: string): Promise<string> {
+  const claudeBin = resolveClaude();
+  return new Promise((resolve, reject) => {
+    const proc = spawn(
+      claudeBin,
+      [
+        '-p',
+        '--output-format',
+        'json',
+        '--model',
+        model,
+        '--system-prompt',
+        SYSTEM_PROMPT,
+        '--json-schema',
+        JSON.stringify(EXTRACTION_SCHEMA),
+        '--no-session-persistence',
+      ],
+      { env: process.env }
+    );
+
+    proc.stdin.write(userMessage);
+    proc.stdin.end();
+
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    proc.stderr.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+
+    proc.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`claude exited ${code}: ${stderr.slice(0, 300)}`));
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stdout) as {
+          result?: string;
+          is_error?: boolean;
+          structured_output?: unknown;
+        };
+        if (parsed.is_error) {
+          reject(new Error(`claude error: ${parsed.result ?? 'unknown'}`));
+          return;
+        }
+        if (parsed.structured_output !== undefined) {
+          resolve(JSON.stringify(parsed.structured_output));
+          return;
+        }
+        // Fallback: strip markdown fences from result text
+        const raw = parsed.result ?? '';
+        resolve(
+          raw
+            .replace(/^```(?:json)?\s*/i, '')
+            .replace(/\s*```\s*$/, '')
+            .trim()
+        );
+      } catch {
+        reject(new Error(`Failed to parse claude output: ${stdout.slice(0, 300)}`));
+      }
+    });
+
+    proc.on('error', (err) => reject(new Error(`Failed to spawn claude: ${err.message}`)));
+  });
+}
+
 // ─── Main extraction ──────────────────────────────────────────────────────────
 
 async function extractCountry(
-  client: Anthropic,
   model: string,
   slug: string,
   displayName: string,
@@ -434,33 +512,20 @@ async function extractCountry(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await client.messages.create({
-        model,
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        tools: [EXTRACTION_TOOL],
-        tool_choice: { type: 'tool', name: 'extract_country_data' },
-        messages: [{ role: 'user', content: userPrompt }],
-      });
-
-      const toolUse = response.content.find((c) => c.type === 'tool_use');
-      if (!toolUse || toolUse.type !== 'tool_use') {
-        throw new Error('No tool_use block in response');
-      }
-
-      const raw = toolUse.input as ExtractionToolInput;
+      const responseText = await callClaude(model, userPrompt);
+      const raw = JSON.parse(responseText) as ExtractionToolInput;
       const validated = validateExtraction(raw);
-
       return { slug, ...validated, extractionError: null };
     } catch (err: unknown) {
-      const isRateLimit = err instanceof Anthropic.APIError && err.status === 429;
-      if (isRateLimit && attempt < maxRetries) {
-        const wait = Math.min(60_000, 2 ** attempt * 5_000);
-        console.warn(`  Rate limit on ${displayName} (attempt ${attempt}), waiting ${wait}ms...`);
+      const message = err instanceof Error ? err.message : String(err);
+      if (attempt < maxRetries) {
+        const wait = Math.min(60_000, 2 ** attempt * 2_000);
+        console.warn(
+          `  Attempt ${attempt} failed for ${displayName}, retrying in ${wait}ms: ${message}`
+        );
         await sleep(wait);
         continue;
       }
-      const message = err instanceof Error ? err.message : String(err);
       return {
         slug,
         roadLines: emptyField(),
@@ -539,13 +604,7 @@ function buildReview(countries: Record<string, CountryAIExtraction>, threshold: 
 async function main(): Promise<void> {
   loadLocalEnv();
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('Error: ANTHROPIC_API_KEY is not set');
-    process.exit(1);
-  }
-
-  const model = process.env.AI_MODEL ?? 'claude-haiku-4-5-20251001';
+  const model = process.env.AI_MODEL ?? 'haiku';
   const threshold = Number(process.env.AI_CONFIDENCE_THRESHOLD ?? '0.7');
   const delayMs = Number(process.env.AI_CRAWL_DELAY_MS ?? '1000');
   const limit = process.env.AI_CRAWL_LIMIT ? Number(process.env.AI_CRAWL_LIMIT) : undefined;
@@ -557,7 +616,6 @@ async function main(): Promise<void> {
   }
 
   const master = JSON.parse(fs.readFileSync(MASTER_PATH, 'utf-8')) as CountryMaster;
-  const client = new Anthropic({ apiKey });
 
   let slugs = Object.keys(master.countries);
   if (countryFilter) {
@@ -593,7 +651,7 @@ async function main(): Promise<void> {
     const displayName = normalizeCountry(titleCaseCountry(slug));
     const text = gatherCountryText(master.countries[slug].content_sections);
 
-    const extraction = await extractCountry(client, model, slug, displayName, text);
+    const extraction = await extractCountry(model, slug, displayName, text);
 
     if (extraction.extractionError) {
       result.metadata.countries_failed++;

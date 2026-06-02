@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "test": "tsx --test src/**/*.test.ts",
+    "sync:carmeta": "tsx scripts/sync-carmeta.ts",
     "sync:data": "tsx scripts/sync-geocarhelpdesk.ts && pnpm merge:crawlers",
     "sync:data:pull": "git -C ../../GeoCarHelpDesk pull --ff-only && pnpm sync:data",
     "crawl:guides": "tsx crawlers/plonk/crawl-guides.ts",
