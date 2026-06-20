@@ -17,9 +17,9 @@
     "merge:crawlers": "tsx crawlers/append-crawler-data-to-backend-data.ts"
   },
   "dependencies": {
-    "@nestjs/common": "11.1.26",
-    "@nestjs/core": "11.1.26",
-    "@nestjs/platform-fastify": "11.1.26",
+    "@nestjs/common": "11.1.27",
+    "@nestjs/core": "11.1.27",
+    "@nestjs/platform-fastify": "11.1.27",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
     "fastify": "^5.0.0",
@@ -27,7 +27,7 @@
     "rxjs": "7.8.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "11.1.26",
+    "@nestjs/testing": "11.1.27",
     "@types/node": "25.9.4",
     "@types/supertest": "7.2.0",
     "puppeteer": "25.1.0",
