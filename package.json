@@ -54,7 +54,7 @@
     "jest": "30.4.2",
     "jest-environment-jsdom": "30.4.1",
     "lint-staged": "17.0.8",
-    "prettier": "3.8.5",
+    "prettier": "3.9.0",
     "tailwindcss": "4.3.1",
     "typescript": "6.0.3"
   },
