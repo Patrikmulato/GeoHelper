@@ -8,4 +8,4 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 overrides:
-  js-yaml: 4.2.0
+  js-yaml: 4.3.0
