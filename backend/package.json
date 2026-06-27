@@ -2,7 +2,7 @@
   "name": "geoguessr-helper-backend",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.8.0",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "predev": "pnpm sync:data:pull",
     "dev": "tsx watch src/main.ts",
