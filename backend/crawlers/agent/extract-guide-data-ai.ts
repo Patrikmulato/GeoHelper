@@ -32,8 +32,9 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const MASTER_PATH = path.join(DATA_DIR, 'countries_master.json');
+const DATA_DIR = path.join(__dirname, '..', 'extraction-data');
+const AGENT_DATA_DIR = path.join(__dirname, '..', 'data');
+const MASTER_PATH = path.join(AGENT_DATA_DIR, 'countries_master.json');
 const OUTPUT_PATH = path.join(DATA_DIR, 'crawler-extracted-ai.json');
 const REVIEW_PATH = path.join(DATA_DIR, 'crawler-extraction-ai-review.json');
 
