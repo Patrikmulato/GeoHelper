@@ -95,3 +95,27 @@ describe('getHighlightedStates', () => {
     expect(getHighlightedStates(PLATES, 'green').size).toBe(0);
   });
 });
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+describe('US_PLATES ↔ GeoJSON name reconciliation', () => {
+  it('every US_PLATES state name resolves to a GeoJSON feature', () => {
+    const geojson = JSON.parse(
+      readFileSync(join(process.cwd(), 'public/us-states.geo.json'), 'utf-8')
+    ) as { features: Array<{ properties: { name: string } }> };
+
+    const geoNames = new Set(geojson.features.map((f) => f.properties.name));
+
+    // Reverse of GEO_TO_PLATE_NAME: plateName → geoName
+    const plateToGeo: Record<string, string> = {
+      'Washington DC': 'District of Columbia',
+    };
+
+    const plateStates = [...new Set(US_PLATES.map((p) => p.state))];
+    for (const state of plateStates) {
+      const geoName = plateToGeo[state] ?? state;
+      expect(geoNames.has(geoName)).toBe(true);
+    }
+  });
+});

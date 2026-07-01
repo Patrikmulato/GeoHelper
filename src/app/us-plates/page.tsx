@@ -38,7 +38,7 @@ export default function USPlatesPage() {
     : `All states · ${filteredPlates.length} plates`;
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Left panel */}
       <aside className="flex w-72 flex-shrink-0 flex-col border-r border-zinc-800 bg-[#1e2530]">
         <div className="border-b border-zinc-800 p-3">

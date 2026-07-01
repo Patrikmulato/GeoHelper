@@ -31,10 +31,14 @@ export interface USPlate {
 
 export const US_PLATES: USPlate[] = [/* 88 entries */];
 
-export const PLATES_IMAGE_BASE = 'https://denes0216.github.io/GeoCarHelpDesk/data/us-plates/';
+export const PLATES_IMAGE_BASE = '/us-plates/';
 ```
 
 **88 plates total across 50 states** (plus Washington DC). Colors: white, blue, green, yellow, red.
+
+### Plate images: `public/us-plates/`
+
+All 88 plate images downloaded from `https://denes0216.github.io/GeoCarHelpDesk/data/us-plates/` and committed to `public/us-plates/`. Served locally at `/us-plates/{file}`. A one-time download script handles this during implementation.
 
 ### US States GeoJSON: `public/us-states.geo.json`
 
@@ -46,13 +50,14 @@ Standard public-domain US states GeoJSON (e.g. from PublicaMundi/MappingAPI). Do
 
 ## Files Changed / Created
 
-| File                         | Action                          |
-| ---------------------------- | ------------------------------- |
-| `src/data/us-plates.ts`      | New — static scraped plate data |
-| `public/us-states.geo.json`  | New — US states GeoJSON         |
-| `src/app/us-plates/page.tsx` | New — page component            |
-| `src/components/USMap.tsx`   | New — Leaflet US states map     |
-| `src/app/layout.tsx`         | Modified — add nav link         |
+| File                         | Action                                   |
+| ---------------------------- | ---------------------------------------- |
+| `src/data/us-plates.ts`      | New — static scraped plate data          |
+| `public/us-states.geo.json`  | New — US states GeoJSON                  |
+| `public/us-plates/*.png`     | New — 88 plate images downloaded locally |
+| `src/app/us-plates/page.tsx` | New — page component                     |
+| `src/components/USMap.tsx`   | New — Leaflet US states map              |
+| `src/app/layout.tsx`         | Modified — add nav link                  |
 
 No backend changes.
 
@@ -146,6 +151,5 @@ Add a "US Plates" link to the existing navbar in `src/app/layout.tsx`, pointing 
 ## What's Explicitly Out of Scope
 
 - Difficulty filter (intentionally excluded per design decisions)
-- Downloading plate images locally (images served directly from reference site)
 - Backend API endpoint for plate data (static, client-side only)
 - Mobile / responsive layout (app is desktop-focused)
