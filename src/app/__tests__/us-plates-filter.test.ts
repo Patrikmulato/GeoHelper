@@ -1,4 +1,6 @@
 import { US_PLATES } from '@/data/us-plates';
+import { filterPlates, getHighlightedStates } from '../us-plates/filter';
+import type { USPlate } from '@/data/us-plates';
 
 const VALID_COLORS = new Set(['white', 'blue', 'green', 'yellow', 'red']);
 const VALID_DIFFICULTIES = new Set(['easy', 'somewhat', 'harder']);
@@ -35,5 +37,61 @@ describe('US_PLATES data shape', () => {
     for (const plate of US_PLATES) {
       expect(plate.file).toMatch(/^plate_(?:r\d+|last)_c\d+\.png$/);
     }
+  });
+});
+
+const PLATES: USPlate[] = [
+  {
+    state: 'California',
+    difficulty: 'harder',
+    file: 'a.png',
+    colors: ['white', 'blue'],
+    label: 'A',
+  },
+  { state: 'California', difficulty: 'harder', file: 'b.png', colors: ['red'], label: 'B' },
+  { state: 'Texas', difficulty: 'somewhat', file: 'c.png', colors: ['white'], label: 'C' },
+  { state: 'Alaska', difficulty: 'easy', file: 'd.png', colors: ['yellow', 'blue'], label: 'D' },
+];
+
+describe('filterPlates', () => {
+  it('returns all plates when colorFilter is "all" and no state selected', () => {
+    expect(filterPlates(PLATES, 'all', null)).toHaveLength(4);
+  });
+
+  it('filters by color', () => {
+    const result = filterPlates(PLATES, 'white', null);
+    expect(result).toHaveLength(2);
+    expect(result.map((p) => p.state)).toEqual(expect.arrayContaining(['California', 'Texas']));
+  });
+
+  it('filters by selected state', () => {
+    const result = filterPlates(PLATES, 'all', 'California');
+    expect(result).toHaveLength(2);
+    expect(result.every((p) => p.state === 'California')).toBe(true);
+  });
+
+  it('combines color and state filters', () => {
+    const result = filterPlates(PLATES, 'white', 'California');
+    expect(result).toHaveLength(1);
+    expect(result[0].file).toBe('a.png');
+  });
+
+  it('returns empty array when no plates match', () => {
+    expect(filterPlates(PLATES, 'green', null)).toHaveLength(0);
+  });
+});
+
+describe('getHighlightedStates', () => {
+  it('returns empty set when colorFilter is "all"', () => {
+    expect(getHighlightedStates(PLATES, 'all').size).toBe(0);
+  });
+
+  it('returns states that have at least one plate with that color', () => {
+    const result = getHighlightedStates(PLATES, 'blue');
+    expect(result).toEqual(new Set(['California', 'Alaska']));
+  });
+
+  it('returns empty set when no plates have that color', () => {
+    expect(getHighlightedStates(PLATES, 'green').size).toBe(0);
   });
 });
