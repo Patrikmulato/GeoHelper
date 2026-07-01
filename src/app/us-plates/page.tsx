@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { US_PLATES, PLATES_IMAGE_BASE } from '@/data/us-plates';
 import type { USPlate } from '@/data/us-plates';
 import { filterPlates, getHighlightedStates } from './filter';
@@ -69,16 +70,18 @@ export default function USPlatesPage() {
                 key={plate.file}
                 onClick={() => handlePlateClick(plate)}
                 title={`${plate.state} — ${plate.label}`}
-                className={`aspect-video overflow-hidden rounded transition-all ${
+                className={`relative aspect-video overflow-hidden rounded transition-all ${
                   plate.state === selectedState
                     ? 'ring-2 ring-blue-500'
                     : 'opacity-80 hover:opacity-100'
                 }`}
               >
-                <img
+                <Image
                   src={`${PLATES_IMAGE_BASE}${plate.file}`}
                   alt={plate.label}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="96px"
+                  className="object-cover"
                 />
               </button>
             ))}
