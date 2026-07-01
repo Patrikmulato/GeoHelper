@@ -7,3 +7,5 @@ coverage
 pnpm-lock.yaml
 renovate.json
 backend/src/data/geo-car-helpdesk.ts
+.superpowers/
+.playwright-mcp/
