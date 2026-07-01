@@ -47,3 +47,7 @@ backend/crawlers/
 
 # codemie
 .codemie/
+
+# claude code scratch dirs
+.superpowers/
+.playwright-mcp/
