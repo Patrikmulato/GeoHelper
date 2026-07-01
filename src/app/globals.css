@@ -61,3 +61,16 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #52525b;
 }
+
+.us-state-label {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #94a3b8 !important;
+  font-size: 8px !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 2px #000 !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+  padding: 0 !important;
+}
