@@ -28,9 +28,9 @@ function getStateStyle(
   const isHighlighted = allHighlighted || highlightedStates.has(plateName);
 
   return {
-    fillColor: isSelected ? '#3b82f6' : '#314252',
-    fillOpacity: isSelected ? 0.8 : isHighlighted ? 0.7 : 0.25,
-    color: isSelected ? '#60a5fa' : '#4a5a68',
+    fillColor: isSelected ? '#3b82f6' : isHighlighted ? '#314252' : '#0d1117',
+    fillOpacity: isSelected ? 0.8 : isHighlighted ? 0.7 : 0.95,
+    color: isSelected ? '#60a5fa' : isHighlighted ? '#4a5a68' : '#1e2530',
     weight: isSelected ? 1.5 : 1,
   };
 }
@@ -61,12 +61,13 @@ export default function USMap({ selectedState, highlightedStates, onStateClick }
     mapRef.current = L.map(containerRef.current, {
       center: [39, -98],
       zoom: 4,
-      minZoom: 3,
-      maxZoom: 9,
-      scrollWheelZoom: true,
+      scrollWheelZoom: false,
       doubleClickZoom: false,
       boxZoom: false,
-      zoomControl: true,
+      dragging: false,
+      touchZoom: false,
+      keyboard: false,
+      zoomControl: false,
     });
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -105,7 +106,8 @@ export default function USMap({ selectedState, highlightedStates, onStateClick }
           },
         }).addTo(mapRef.current);
 
-        // Fit to continental US
+        // Fit to continental US — invalidateSize first so Leaflet sees the real container dimensions
+        mapRef.current.invalidateSize();
         mapRef.current.fitBounds(
           [
             [24, -125],

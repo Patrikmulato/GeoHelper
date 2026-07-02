@@ -2,12 +2,12 @@ import type { USPlate } from '@/data/us-plates';
 
 export function filterPlates(
   plates: USPlate[],
-  colorFilter: string,
+  colorFilters: Set<string>,
   selectedState: string | null
 ): USPlate[] {
   let result = plates;
-  if (colorFilter !== 'all') {
-    result = result.filter((p) => p.colors.includes(colorFilter));
+  if (colorFilters.size > 0) {
+    result = result.filter((p) => [...colorFilters].every((c) => p.colors.includes(c)));
   }
   if (selectedState !== null) {
     result = result.filter((p) => p.state === selectedState);
@@ -15,7 +15,9 @@ export function filterPlates(
   return result;
 }
 
-export function getHighlightedStates(plates: USPlate[], colorFilter: string): Set<string> {
-  if (colorFilter === 'all') return new Set<string>();
-  return new Set(plates.filter((p) => p.colors.includes(colorFilter)).map((p) => p.state));
+export function getHighlightedStates(plates: USPlate[], colorFilters: Set<string>): Set<string> {
+  if (colorFilters.size === 0) return new Set<string>();
+  return new Set(
+    plates.filter((p) => [...colorFilters].every((c) => p.colors.includes(c))).map((p) => p.state)
+  );
 }

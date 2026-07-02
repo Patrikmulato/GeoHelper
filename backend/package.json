@@ -4,7 +4,6 @@
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "scripts": {
-    "predev": "pnpm sync:data:pull",
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",

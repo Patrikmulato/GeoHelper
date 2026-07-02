@@ -62,15 +62,15 @@ body {
   background: #52525b;
 }
 
-.us-state-label {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  color: #94a3b8 !important;
-  font-size: 8px !important;
-  font-weight: 600 !important;
-  text-shadow: 0 1px 2px #000 !important;
-  pointer-events: none !important;
-  white-space: nowrap !important;
-  padding: 0 !important;
+.leaflet-tooltip.us-state-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #94a3b8;
+  font-size: 8px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px #000;
+  pointer-events: none;
+  white-space: nowrap;
+  padding: 0;
 }

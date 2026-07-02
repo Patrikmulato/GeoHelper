@@ -22,6 +22,7 @@ Next.js 16 App Router + TypeScript + Tailwind v4. All map/filter data comes from
 - Tooltip HTML is built server-side and delivered in `MapDataResponse.tooltipHtmlByCountry` — do not construct it on the frontend
 - If adding a new filter type or value, update `src/types/map-data.ts` **and** `backend/src/modules/data/dto/filter-request.dto.ts` together
 - Styling: Tailwind classes first; `globals.css` only when Tailwind can't cover it
+- Never use `!important` in `globals.css` — increase selector specificity instead (e.g. `.leaflet-tooltip.my-class` beats `.leaflet-tooltip`)
 - Dark theme is the default
 
 ## Data Flow
