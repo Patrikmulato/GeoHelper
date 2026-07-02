@@ -113,7 +113,7 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
         )}
         <div
           ref={containerRef}
-          className="w-full overflow-hidden"
+          className="relative w-full overflow-hidden"
           style={{
             height: 'calc(100vh - 120px)',
             cursor: isDragging ? 'grabbing' : scale > 1 ? 'grab' : 'zoom-in',
@@ -126,9 +126,8 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
           <Image
             src={src}
             alt={alt}
-            width={1600}
-            height={900}
-            className="h-full w-full object-contain select-none"
+            fill
+            className="object-contain select-none"
             style={{
               transform: `scale(${scale}) translate(${offset.x / scale}px, ${offset.y / scale}px)`,
               transformOrigin: 'center center',

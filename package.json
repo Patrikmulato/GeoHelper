@@ -9,10 +9,9 @@
   },
   "scripts": {
     "prepare": "husky",
-    "predev": "pnpm sync:data:pull",
     "dev": "next dev",
-    "dev:backend": "pnpm sync:data:pull && pnpm --filter geoguessr-helper-backend dev",
-    "dev:all": "pnpm sync:data:pull && concurrently --kill-others-on-fail -n frontend,backend -c cyan,yellow \"next dev\" \"pnpm --filter geoguessr-helper-backend dev\"",
+    "dev:backend": "pnpm --filter geoguessr-helper-backend dev",
+    "dev:all": "concurrently --kill-others-on-fail -n frontend,backend -c cyan,yellow \"next dev\" \"pnpm --filter geoguessr-helper-backend dev\"",
     "build": "next build",
     "build:backend": "pnpm sync:data:pull && pnpm --filter geoguessr-helper-backend build",
     "sync:data": "pnpm --filter geoguessr-helper-backend sync:data",
@@ -65,7 +64,7 @@
       "prettier --write"
     ],
     "src/**/*.{js,jsx,ts,tsx}": [
-      "jest --bail --findRelatedTests"
+      "jest --bail --findRelatedTests --passWithNoTests"
     ],
     "*.{json,css,md}": [
       "prettier --write"

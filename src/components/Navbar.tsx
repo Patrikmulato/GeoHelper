@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const TABS = [
   { label: 'World Map', href: '/' },
+  { label: 'US Plates', href: '/us-plates' },
   { label: 'Useful Maps', href: '/useful-maps' },
 ];
 

@@ -5,7 +5,7 @@
 
 **Required:** Node.js 22+ (see `.nvmrc`, `.node-version`, or `package.json` engines field)
 
-**Dev startup prerequisite:** `pnpm dev` and `pnpm dev:backend` run `sync:data:pull` automatically, which does a `git pull` on the sibling `GeoCarHelpDesk` repo (`../GeoCarHelpDesk`). If that repo is not present locally, dev startup will fail.
+**Sync data manually when needed:** Run `pnpm sync:data:pull` to pull the sibling `GeoCarHelpDesk` repo and regenerate backend data. Dev scripts no longer run this automatically.
 
 - Next.js 16 App Router + TypeScript + Tailwind v4
 - Leaflet map loaded client-side only (`next/dynamic`, `ssr: false`)
