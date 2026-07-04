@@ -33,7 +33,7 @@
     "@nestjs/testing": "11.1.27",
     "@types/node": "25.9.4",
     "@types/supertest": "7.2.0",
-    "@anthropic-ai/sdk": "^0.52.0",
+    "@anthropic-ai/sdk": "^0.110.0",
     "puppeteer": "25.2.1",
     "supertest": "7.2.2",
     "tsx": "4.22.4",
