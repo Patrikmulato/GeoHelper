@@ -2,13 +2,13 @@ import { apiClient } from '@/lib/api/client';
 import type { FilterRequest, FilterResponse, MapDataResponse } from '@/types/map-data';
 
 export function fetchGeoJson() {
-  return apiClient.get<GeoJSON.FeatureCollection>('/api/data/geojson');
+  return apiClient.get<GeoJSON.FeatureCollection>('/data/geojson');
 }
 
 export function fetchMapData() {
-  return apiClient.get<MapDataResponse>('/api/data/map');
+  return apiClient.get<MapDataResponse>('/data/map');
 }
 
 export function fetchFilteredCountries(filters: FilterRequest) {
-  return apiClient.post<FilterResponse>('/api/data/filter', filters);
+  return apiClient.post<FilterResponse>('/data/filter', filters);
 }
