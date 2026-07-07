@@ -46,7 +46,9 @@ class ApiClient {
       throw new ApiError(res.status, error.message ?? 'Request failed');
     }
 
-    return res.json() as Promise<T>;
+    // Extract data from standardized API response format: { success, data, timestamp, path }
+    const response = (await res.json()) as { success: boolean; data: T };
+    return response.data;
   }
 
   get<T>(path: string, options?: RequestOptions) {
