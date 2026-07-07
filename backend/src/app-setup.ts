@@ -1,9 +1,13 @@
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, ExceptionFilter, NestInterceptor } from '@nestjs/common';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
 
 type AppWithConfig = {
   enableCors: (options: { origin: string[] }) => void;
   useGlobalPipes: (...pipes: ValidationPipe[]) => void;
   setGlobalPrefix: (prefix: string) => void;
+  useGlobalFilters: (filter: ExceptionFilter) => void;
+  useGlobalInterceptors: (interceptor: NestInterceptor) => void;
 };
 
 type SetupOptions = {
@@ -29,6 +33,12 @@ export function setupApp(app: AppWithConfig, options: SetupOptions = {}): void {
       transform: true,
     })
   );
+
+  // Register global filters (exception handling)
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Register global interceptors (response standardization)
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
   if (withGlobalPrefix) {
     app.setGlobalPrefix('api');
