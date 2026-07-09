@@ -40,16 +40,29 @@ export default function Home() {
     async function loadInitialData() {
       setIsInitialLoading(true);
       setInitialError(null);
+      const mapRequest = fetchMapData();
+      const geoJsonRequest = fetchGeoJson();
+
       try {
-        const [geoJsonData, serverMapData] = await Promise.all([fetchGeoJson(), fetchMapData()]);
+        const serverMapData = await mapRequest;
         if (!active) return;
-        setGeojson(geoJsonData);
         setMapData(serverMapData);
         // Render immediately with all GeoGuessr countries while filtered data loads.
         setFilteredCountries(serverMapData.geoguessrCountries);
-      } catch {
+      } catch (error) {
         if (!active) return;
+        console.error('Map data load failed:', error);
         setInitialError('Failed to load map data from backend API.');
+      }
+
+      try {
+        const geoJsonData = await geoJsonRequest;
+        if (!active) return;
+        setGeojson(geoJsonData);
+      } catch (error) {
+        if (!active) return;
+        console.error('GeoJSON load failed:', error);
+        setInitialError((prev) => prev ?? 'Failed to load country geometry from backend API.');
       } finally {
         if (!active) return;
         setIsInitialLoading(false);
