@@ -45,6 +45,8 @@ export default function Home() {
         if (!active) return;
         setGeojson(geoJsonData);
         setMapData(serverMapData);
+        // Render immediately with all GeoGuessr countries while filtered data loads.
+        setFilteredCountries(serverMapData.geoguessrCountries);
       } catch {
         if (!active) return;
         setInitialError('Failed to load map data from backend API.');
