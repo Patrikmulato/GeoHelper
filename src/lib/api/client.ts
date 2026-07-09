@@ -6,7 +6,7 @@ type RequestOptions = {
   signal?: AbortSignal;
 };
 
-class ApiClient {
+export class ApiClient {
   private baseUrl: string;
 
   constructor(baseUrl: string) {
@@ -14,13 +14,24 @@ class ApiClient {
   }
 
   private buildUrl(path: string, params?: Record<string, string>): string {
-    const url = new URL(path, this.baseUrl);
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-      });
+    // Handle both absolute URLs and relative paths
+    let urlString: string;
+    if (this.baseUrl.startsWith('http')) {
+      // Absolute URL (production/dev backend)
+      const url = new URL(path, this.baseUrl);
+      urlString = url.toString();
+    } else {
+      // Relative path (Vercel rewrites)
+      urlString = `${this.baseUrl}${path}`;
     }
-    return url.toString();
+
+    // Add query parameters if provided
+    if (params) {
+      const searchParams = new URLSearchParams(params);
+      urlString = `${urlString}?${searchParams.toString()}`;
+    }
+
+    return urlString;
   }
 
   private async request<T>(
@@ -46,7 +57,9 @@ class ApiClient {
       throw new ApiError(res.status, error.message ?? 'Request failed');
     }
 
-    return res.json() as Promise<T>;
+    // Extract data from standardized API response format: { success, data, timestamp, path }
+    const response = (await res.json()) as { success: boolean; data: T };
+    return response.data;
   }
 
   get<T>(path: string, options?: RequestOptions) {
