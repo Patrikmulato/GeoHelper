@@ -95,7 +95,9 @@ describe('Home', () => {
     render(<Home />);
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to load map data from backend API.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Failed to load country geometry from backend API.')
+      ).toBeInTheDocument();
     });
   });
 

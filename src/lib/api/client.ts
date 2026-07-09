@@ -41,14 +41,15 @@ export class ApiClient {
     options?: RequestOptions
   ): Promise<T> {
     const url = this.buildUrl(path, options?.params);
+    const hasBody = body !== undefined;
 
     const res = await fetch(url, {
       method,
       headers: {
-        'Content-Type': 'application/json',
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
         ...options?.headers,
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: hasBody ? JSON.stringify(body) : undefined,
       signal: options?.signal,
     });
 
