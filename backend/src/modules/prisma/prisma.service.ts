@@ -1,32 +1,66 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
-import { getDatabaseUrl } from '../../config/database.config.js';
+
+type DatabaseConnectionConfig = {
+  connectionString: string | null;
+  shouldConnect: boolean;
+};
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  private readonly shouldConnect: boolean;
+
   constructor() {
-    const connectionString = PrismaService.resolveDatabaseUrl();
-    super({ adapter: new PrismaPg({ connectionString }) });
+    const { connectionString, shouldConnect } = PrismaService.resolveDatabaseConnection();
+
+    if (connectionString) {
+      super({ adapter: new PrismaPg({ connectionString }) });
+    } else {
+      super();
+    }
+
+    this.shouldConnect = shouldConnect;
   }
 
-  private static resolveDatabaseUrl(): string {
+  private static resolveDatabaseConnection(): DatabaseConnectionConfig {
     if (process.env.DATABASE_URL) {
-      return process.env.DATABASE_URL;
+      return {
+        connectionString: process.env.DATABASE_URL,
+        shouldConnect: true,
+      };
     }
 
     // Tests and ad-hoc scripts may not preload dotenv.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('dotenv/config');
 
-    return getDatabaseUrl();
+    if (process.env.DATABASE_URL) {
+      return {
+        connectionString: process.env.DATABASE_URL,
+        shouldConnect: true,
+      };
+    }
+
+    if (process.env.NODE_ENV === 'test') {
+      return {
+        connectionString: null,
+        shouldConnect: false,
+      };
+    }
+
+    throw new Error('DATABASE_URL is required');
   }
 
   async onModuleInit() {
-    await this.$connect();
+    if (this.shouldConnect) {
+      await this.$connect();
+    }
   }
 
   async onModuleDestroy() {
-    await this.$disconnect();
+    if (this.shouldConnect) {
+      await this.$disconnect();
+    }
   }
 }
