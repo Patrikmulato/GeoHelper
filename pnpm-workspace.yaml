@@ -11,3 +11,4 @@ allowBuilds:
   unrs-resolver: true
 overrides:
   js-yaml: 4.3.0
+  '@hono/node-server': 2.0.5
