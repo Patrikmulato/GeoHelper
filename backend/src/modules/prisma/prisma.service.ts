@@ -3,9 +3,12 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 type DatabaseConnectionConfig = {
-  connectionString: string | null;
+  connectionString: string;
   shouldConnect: boolean;
 };
+
+const FALLBACK_DATABASE_URL =
+  'postgresql://postgres:postgres@localhost:5432/postgres?sslmode=require';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -14,11 +17,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     const { connectionString, shouldConnect } = PrismaService.resolveDatabaseConnection();
 
-    if (connectionString) {
-      super({ adapter: new PrismaPg({ connectionString }) });
-    } else {
-      super();
-    }
+    super({ adapter: new PrismaPg({ connectionString }) });
 
     this.shouldConnect = shouldConnect;
   }
@@ -44,7 +43,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     if (process.env.NODE_ENV === 'test') {
       return {
-        connectionString: null,
+        connectionString: FALLBACK_DATABASE_URL,
         shouldConnect: false,
       };
     }
