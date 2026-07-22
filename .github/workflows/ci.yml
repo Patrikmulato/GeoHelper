@@ -47,6 +47,9 @@ jobs:
       - name: Type check frontend
         run: pnpm typecheck
 
+      - name: Generate Prisma client (backend)
+        run: pnpm --filter geoguessr-helper-backend prisma:generate
+
       - name: Type check backend
         run: pnpm --filter geoguessr-helper-backend exec tsc --noEmit
 

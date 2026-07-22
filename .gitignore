@@ -52,3 +52,4 @@ backend/crawlers/plonk
 # claude code scratch dirs
 .superpowers/
 .playwright-mcp/
+.prisma/
