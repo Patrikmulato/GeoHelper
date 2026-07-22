@@ -50,6 +50,9 @@ jobs:
       - name: Generate Prisma client (backend)
         run: pnpm --filter geoguessr-helper-backend prisma:generate
 
+      - name: Validate Prisma schema (backend)
+        run: pnpm --filter geoguessr-helper-backend exec prisma validate
+
       - name: Type check backend
         run: pnpm --filter geoguessr-helper-backend exec tsc --noEmit
 

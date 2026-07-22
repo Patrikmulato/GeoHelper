@@ -35,11 +35,18 @@ const MOCK_MAP_DATA = {
 const MOCK_GEOJSON = { type: 'FeatureCollection' as const, features: [] };
 
 describe('Home', () => {
+  let consoleErrorSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.resetAllMocks();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     (mapData.fetchGeoJson as jest.Mock).mockResolvedValue(MOCK_GEOJSON);
     (mapData.fetchMapData as jest.Mock).mockResolvedValue(MOCK_MAP_DATA);
     (mapData.fetchFilteredCountries as jest.Mock).mockResolvedValue({ countries: [] });
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('calls fetchGeoJson and fetchMapData exactly once on mount', async () => {
@@ -87,6 +94,8 @@ describe('Home', () => {
     await waitFor(() => {
       expect(screen.getByText('Failed to load map data from backend API.')).toBeInTheDocument();
     });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Map data load failed:', expect.any(Error));
   });
 
   it('renders an error message when fetchGeoJson fails', async () => {
@@ -99,6 +108,8 @@ describe('Home', () => {
         screen.getByText('Failed to load country geometry from backend API.')
       ).toBeInTheDocument();
     });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('GeoJSON load failed:', expect.any(Error));
   });
 
   it('does not crash when fetchFilteredCountries returns a non-empty countries array', async () => {
