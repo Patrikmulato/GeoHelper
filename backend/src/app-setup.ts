@@ -1,7 +1,9 @@
 import { ValidationPipe } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
+import { ValidationExceptionFilter } from './common/filters/validation.exception.filter.js';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
+import { getAppConfig } from './config/app.config.js';
 
 type SetupOptions = {
   withGlobalPrefix?: boolean;
@@ -9,14 +11,15 @@ type SetupOptions = {
 
 export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}): void {
   const { withGlobalPrefix = true } = options;
+  const appConfig = getAppConfig();
 
   // Build allowed origins - supports localhost, env vars, and Vercel preview deployments
   const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
     'https://geo-helpers.vercel.app',
-    process.env.CORS_ORIGIN,
-    process.env.FRONTEND_URL,
+    appConfig.corsOrigin,
+    appConfig.frontendUrl,
   ].filter((origin): origin is string => Boolean(origin));
 
   // CORS configuration with dynamic Vercel preview support
@@ -62,7 +65,7 @@ export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}
   );
 
   // Register global filters (exception handling)
-  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new ValidationExceptionFilter(), new HttpExceptionFilter());
 
   // Register global interceptors (response standardization)
   app.useGlobalInterceptors(new ResponseInterceptor());

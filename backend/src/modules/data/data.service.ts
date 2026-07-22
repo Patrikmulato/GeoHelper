@@ -13,14 +13,13 @@ import {
   vehicleTypeData,
 } from '../../data/geo-car-helpdesk.js';
 import { FilterRequestDto } from './dto/filter-request.dto.js';
-
-type FilterResponse = { countries: string[] };
+import { FilterResponseDto } from './dto/filter-response.dto.js';
 
 const FILTER_CACHE_MAX_ENTRIES = 300;
 
 @Injectable()
 export class DataService {
-  private readonly filterCache = new Map<string, FilterResponse>();
+  private readonly filterCache = new Map<string, FilterResponseDto>();
   private readonly tooltipHtmlByCountry = Object.fromEntries(
     Array.from(geoguessrCountries).map((country) => [country, this.buildTooltip(country)])
   );
@@ -72,7 +71,7 @@ export class DataService {
     return parts.join('<br/>');
   }
 
-  private setFilterCache(key: string, value: FilterResponse) {
+  private setFilterCache(key: string, value: FilterResponseDto) {
     // Simple FIFO eviction is enough for this small query space.
     if (this.filterCache.size >= FILTER_CACHE_MAX_ENTRIES) {
       const firstKey = this.filterCache.keys().next().value;
@@ -118,7 +117,7 @@ export class DataService {
     };
   }
 
-  getFilteredCountries(filters: FilterRequestDto) {
+  getFilteredCountries(filters: FilterRequestDto): FilterResponseDto {
     const cacheKey = this.getFilterCacheKey(filters);
     const cached = this.filterCache.get(cacheKey);
     if (cached) {

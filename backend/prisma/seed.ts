@@ -16,8 +16,8 @@ async function main() {
   for (const name of geoguessrCountries) {
     await prisma.country.upsert({
       where: { name },
-      update: {},
-      create: { name },
+      update: { code: name },
+      create: { name, code: name },
     });
   }
 }
