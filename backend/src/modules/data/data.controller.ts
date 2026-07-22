@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Header, Inject, Post, ValidationPipe } from '@nestjs/common';
+import { ApiResponseMessage } from '../../common/decorators/api-response.decorator.js';
 import { DataService } from './data.service.js';
 import { FilterRequestDto } from './dto/filter-request.dto.js';
+import { FilterResponseDto } from './dto/filter-response.dto.js';
 
 @Controller('data')
 export class DataController {
@@ -19,6 +21,7 @@ export class DataController {
   }
 
   @Post('filter')
+  @ApiResponseMessage('Filtered countries generated')
   getFilteredCountries(
     @Body(
       new ValidationPipe({
@@ -29,7 +32,7 @@ export class DataController {
       })
     )
     body: FilterRequestDto
-  ) {
+  ): FilterResponseDto {
     return this.dataService.getFilteredCountries(body);
   }
 }
