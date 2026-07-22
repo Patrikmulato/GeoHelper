@@ -12,6 +12,7 @@ import {
   carColorData,
   vehicleTypeData,
 } from '../../data/geo-car-helpdesk.js';
+import { LoggerService } from '../../common/logger/logger.service.js';
 import { FilterRequestDto } from './dto/filter-request.dto.js';
 import { FilterResponseDto } from './dto/filter-response.dto.js';
 
@@ -19,6 +20,8 @@ const FILTER_CACHE_MAX_ENTRIES = 300;
 
 @Injectable()
 export class DataService {
+  constructor(private readonly logger: LoggerService = new LoggerService()) {}
+
   private readonly filterCache = new Map<string, FilterResponseDto>();
   private readonly tooltipHtmlByCountry = Object.fromEntries(
     Array.from(geoguessrCountries).map((country) => [country, this.buildTooltip(country)])
@@ -121,8 +124,19 @@ export class DataService {
     const cacheKey = this.getFilterCacheKey(filters);
     const cached = this.filterCache.get(cacheKey);
     if (cached) {
+      this.logger.debug('DataService', 'Filter cache hit', { cacheKey });
       return cached;
     }
+
+    this.logger.log('DataService', 'Applying filters', {
+      sideFilter: filters.sideFilter,
+      lineFilter: filters.lineFilter,
+      euPlateFilter: filters.euPlateFilter,
+      cameraGenFilter: filters.cameraGenFilter,
+      coverageYearFilter: filters.coverageYearFilter,
+      carColorFilter: filters.carColorFilter,
+      vehicleTypeFilter: filters.vehicleTypeFilter,
+    });
 
     const matches: string[] = [];
 
@@ -183,6 +197,10 @@ export class DataService {
 
     const response = { countries: matches };
     this.setFilterCache(cacheKey, response);
+    this.logger.log('DataService', 'Filter result computed', {
+      matchCount: matches.length,
+      cacheKey,
+    });
     return response;
   }
 }

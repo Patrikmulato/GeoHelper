@@ -1,8 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { DataService } from './data.service.js';
+import { LoggerService } from '../../common/logger/logger.service.js';
 
-const service = new DataService();
+const service = new DataService(new LoggerService());
 
 describe('DataService.getFilteredCountries', () => {
   it('returns many countries for all filters', () => {

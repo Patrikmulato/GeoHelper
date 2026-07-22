@@ -1,5 +1,6 @@
 import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { getCorrelationId } from '../logger/correlation-context.js';
 
 @Catch(BadRequestException)
 export class ValidationExceptionFilter implements ExceptionFilter<BadRequestException> {
@@ -34,6 +35,7 @@ export class ValidationExceptionFilter implements ExceptionFilter<BadRequestExce
       },
       timestamp: new Date().toISOString(),
       path: request.url,
+      correlationId: getCorrelationId(),
     });
   }
 }

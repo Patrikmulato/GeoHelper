@@ -1,5 +1,6 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { getCorrelationId } from '../logger/correlation-context.js';
 
 export interface ApiErrorResponse {
   success: false;
@@ -10,6 +11,7 @@ export interface ApiErrorResponse {
   };
   timestamp: string;
   path: string;
+  correlationId?: string;
 }
 
 @Catch()
@@ -56,6 +58,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       },
       timestamp: new Date().toISOString(),
       path: request.url,
+      correlationId: getCorrelationId(),
     };
 
     response.status(status).send(apiErrorResponse);

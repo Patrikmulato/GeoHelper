@@ -2,12 +2,14 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nes
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import type { FastifyRequest } from 'fastify';
+import { getCorrelationId } from '../logger/correlation-context.js';
 
 export interface ApiSuccessResponse<T = unknown> {
   success: true;
   data: T;
   timestamp: string;
   path: string;
+  correlationId?: string;
 }
 
 @Injectable()
@@ -22,6 +24,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiSuccessResp
         data,
         timestamp: new Date().toISOString(),
         path: request.url,
+        correlationId: getCorrelationId(),
       }))
     );
   }
