@@ -52,7 +52,7 @@ describe('AuthService', () => {
         }
         return `access-${payload.sub}`;
       },
-      verifyAsync: async <T>() => {
+      verifyAsync: async () => {
         throw new Error('verify should not be called');
       },
     };
@@ -93,7 +93,7 @@ describe('AuthService', () => {
 
     const jwtMock: JwtServiceLike = {
       signAsync: async () => 'unused',
-      verifyAsync: async <T>() => {
+      verifyAsync: async () => {
         throw new Error('verify should not be called');
       },
     };
@@ -145,7 +145,7 @@ describe('AuthService', () => {
         }
         return `access-${payload.sub}`;
       },
-      verifyAsync: async <T>() => {
+      verifyAsync: async () => {
         throw new Error('verify should not be called');
       },
     };
@@ -186,7 +186,7 @@ describe('AuthService', () => {
 
     const jwtMock: JwtServiceLike = {
       signAsync: async () => 'unused',
-      verifyAsync: async <T>() => {
+      verifyAsync: async () => {
         throw new Error('verify should not be called');
       },
     };
@@ -288,7 +288,7 @@ describe('AuthService', () => {
 
     const jwtMock: JwtServiceLike = {
       signAsync: async () => 'unused',
-      verifyAsync: async <T>() => {
+      verifyAsync: async () => {
         throw new Error('verify should not be called');
       },
     };
