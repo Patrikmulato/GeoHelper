@@ -88,6 +88,51 @@ describe('UsersService', () => {
     );
   });
 
+  it('createUser preserves explicit role and leaves passwordHash undefined when password is missing', async () => {
+    let capturedPasswordHash: string | undefined;
+    let capturedRole: UserRole | undefined;
+
+    const prismaMock = {
+      user: {
+        findUnique: async () => null,
+        create: async (input: {
+          data: { email: string; role: UserRole; passwordHash?: string };
+          select: {
+            id: true;
+            email: true;
+            role: true;
+            createdAt: true;
+            updatedAt: true;
+          };
+        }) => {
+          capturedPasswordHash = input.data.passwordHash;
+          capturedRole = input.data.role;
+
+          return {
+            id: 'user-2',
+            email: input.data.email,
+            role: input.data.role,
+            createdAt: makeDate('2026-01-10T00:00:00.000Z'),
+            updatedAt: makeDate('2026-01-11T00:00:00.000Z'),
+          };
+        },
+        findMany: async () => [],
+      },
+    };
+
+    const service = new UsersService(prismaMock as unknown as PrismaService);
+
+    const result = await service.createUser({
+      email: 'admin-no-password@example.com',
+      role: UserRole.ADMIN,
+    });
+
+    assert.equal(result.id, 'user-2');
+    assert.equal(result.role, UserRole.ADMIN);
+    assert.equal(capturedRole, UserRole.ADMIN);
+    assert.equal(capturedPasswordHash, undefined);
+  });
+
   it('getUserById throws NotFoundException when user does not exist', async () => {
     const prismaMock = {
       user: {
