@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { SavedFiltersService } from './saved-filters.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
@@ -53,8 +54,7 @@ describe('SavedFiltersService', () => {
 
     const service = new SavedFiltersService(prismaMock as unknown as PrismaService);
 
-    const result = await service.createSavedFilter({
-      userId: 'user-1',
+    const result = await service.createSavedFilter('user-1', {
       name: 'Starter',
       filters: { sideFilter: 'left' },
     });
@@ -143,7 +143,7 @@ describe('SavedFiltersService', () => {
     const service = new SavedFiltersService(prismaMock as unknown as PrismaService);
 
     await assert.rejects(
-      service.getSavedFilterById('missing-id'),
+      service.getSavedFilterById('missing-id', 'user-1', UserRole.USER),
       (error: unknown) =>
         error instanceof NotFoundException && error.message === 'Saved filter not found'
     );
@@ -157,7 +157,7 @@ describe('SavedFiltersService', () => {
         },
         findMany: async () => [],
         count: async () => 0,
-        findUnique: async () => ({ id: 'sf-1' }),
+        findUnique: async () => ({ id: 'sf-1', userId: 'user-1' }),
         update: async () => {
           throw new Error('update should not be called');
         },
@@ -167,8 +167,36 @@ describe('SavedFiltersService', () => {
 
     const service = new SavedFiltersService(prismaMock as unknown as PrismaService);
 
-    const result = await service.deleteSavedFilter('sf-1');
+    const result = await service.deleteSavedFilter('sf-1', 'user-1', UserRole.USER);
 
     assert.deepEqual(result, { id: 'sf-1', deleted: true });
+  });
+
+  it('deleteSavedFilter throws ForbiddenException when non-owner tries to delete', async () => {
+    const prismaMock = {
+      savedFilter: {
+        create: async () => {
+          throw new Error('create should not be called');
+        },
+        findMany: async () => [],
+        count: async () => 0,
+        findUnique: async () => ({ id: 'sf-1', userId: 'owner-1' }),
+        update: async () => {
+          throw new Error('update should not be called');
+        },
+        delete: async () => {
+          throw new Error('delete should not be called');
+        },
+      },
+    };
+
+    const service = new SavedFiltersService(prismaMock as unknown as PrismaService);
+
+    await assert.rejects(
+      service.deleteSavedFilter('sf-1', 'other-user', UserRole.USER),
+      (error: unknown) =>
+        error instanceof ForbiddenException &&
+        error.message === 'You do not have access to this saved filter'
+    );
   });
 });
