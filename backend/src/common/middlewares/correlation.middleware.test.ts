@@ -7,7 +7,9 @@ type HeaderBag = Record<string, string | Array<string> | undefined>;
 
 type MockRequest = Pick<IncomingMessage, 'headers'>;
 
-type MockResponse = Pick<ServerResponse, 'setHeader'>;
+type MockResponse = {
+  setHeader: (name: string, value: number | string | ReadonlyArray<string>) => void;
+};
 
 function createResponseCapture(): {
   response: MockResponse;
@@ -17,10 +19,9 @@ function createResponseCapture(): {
 
   return {
     response: {
-      setHeader: (name: string, value: number | string | ReadonlyArray<string>): MockResponse => {
+      setHeader: (name: string, value: number | string | ReadonlyArray<string>): void => {
         const normalized = Array.isArray(value) ? value.join(',') : String(value);
         headers.set(name, normalized);
-        return {} as MockResponse;
       },
     },
     getHeader: (name: string) => headers.get(name),
