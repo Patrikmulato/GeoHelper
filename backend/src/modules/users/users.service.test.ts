@@ -1,6 +1,5 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { UsersService } from './users.service.js';
@@ -58,8 +57,13 @@ describe('UsersService', () => {
     assert.equal(result.createdAt.toISOString(), createdAt.toISOString());
     assert.equal(result.updatedAt.toISOString(), updatedAt.toISOString());
 
-    const expectedHash = createHash('sha256').update('super-secret').digest('hex');
-    assert.equal(capturedPasswordHash, expectedHash);
+    assert.ok(capturedPasswordHash);
+    const hashParts = capturedPasswordHash.split('$');
+    assert.equal(hashParts.length, 3);
+    assert.equal(hashParts[0], 'scrypt');
+    assert.match(hashParts[1], /^[0-9a-f]{32}$/);
+    assert.match(hashParts[2], /^[0-9a-f]{128}$/);
+    assert.notEqual(capturedPasswordHash, 'super-secret');
     assert.equal(capturedRole, UserRole.USER);
   });
 
