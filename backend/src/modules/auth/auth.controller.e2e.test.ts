@@ -2,7 +2,17 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
+import { UserRole } from '@prisma/client';
 import { AppModule } from '../../app.module.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+
+type MockUser = {
+  id: string;
+  email: string;
+  role: UserRole;
+  passwordHash: string;
+  refreshTokenHash: string | null;
+};
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
@@ -10,11 +20,86 @@ function uniqueEmail(prefix: string): string {
 
 describe('AuthController (e2e)', () => {
   let app: NestFastifyApplication;
+  const users = new Map<string, MockUser>();
+  let nextId = 1;
+
+  const prismaMock = {
+    user: {
+      findUnique: async (input: { where: { id?: string; email?: string } }) => {
+        const { id, email } = input.where;
+
+        if (id) {
+          return users.get(id) ?? null;
+        }
+
+        if (email) {
+          for (const user of users.values()) {
+            if (user.email === email) {
+              return user;
+            }
+          }
+        }
+
+        return null;
+      },
+      create: async (input: {
+        data: { email: string; passwordHash: string; role?: UserRole };
+        select: {
+          id?: true;
+          email?: true;
+          role?: true;
+          passwordHash?: true;
+          refreshTokenHash?: true;
+        };
+      }) => {
+        const user: MockUser = {
+          id: `mock-user-${nextId++}`,
+          email: input.data.email,
+          role: input.data.role ?? UserRole.USER,
+          passwordHash: input.data.passwordHash,
+          refreshTokenHash: null,
+        };
+
+        users.set(user.id, user);
+
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          passwordHash: user.passwordHash,
+          refreshTokenHash: user.refreshTokenHash,
+        };
+      },
+      update: async (input: {
+        where: { id: string };
+        data: { refreshTokenHash: string | null };
+      }) => {
+        const user = users.get(input.where.id);
+        if (!user) {
+          throw new Error('User not found in mock store');
+        }
+
+        user.refreshTokenHash = input.data.refreshTokenHash;
+        users.set(user.id, user);
+
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          passwordHash: user.passwordHash,
+          refreshTokenHash: user.refreshTokenHash,
+        };
+      },
+    },
+  };
 
   before(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue(prismaMock)
+      .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     app.setGlobalPrefix('api');
