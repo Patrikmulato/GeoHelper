@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { hashPassword } from '../../common/utils/password-hash';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -7,7 +7,11 @@ import { UserDto } from './dto/user.dto.js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly prisma: PrismaService;
+
+  constructor(@Inject(PrismaService) prisma: PrismaService) {
+    this.prisma = prisma;
+  }
 
   private toUserDto(user: {
     id: string;

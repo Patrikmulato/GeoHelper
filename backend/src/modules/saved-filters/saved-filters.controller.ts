@@ -1,4 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import type { AccessTokenPayload } from '../auth/auth.types.js';
 import { CreateSavedFilterDto } from './dto/create-saved-filter.dto.js';
 import { PaginatedSavedFiltersDto, SavedFilterDto } from './dto/saved-filter.dto.js';
 import { UpdateSavedFilterDto } from './dto/update-saved-filter.dto.js';
@@ -6,16 +20,28 @@ import { SavedFiltersService } from './saved-filters.service.js';
 
 @Controller('saved-filters')
 export class SavedFiltersController {
-  constructor(private readonly savedFiltersService: SavedFiltersService) {}
+  private readonly savedFiltersService: SavedFiltersService;
 
-  @Post()
-  async createSavedFilter(@Body() body: CreateSavedFilterDto): Promise<SavedFilterDto> {
-    return this.savedFiltersService.createSavedFilter(body);
+  constructor(@Inject(SavedFiltersService) savedFiltersService: SavedFiltersService) {
+    this.savedFiltersService = savedFiltersService;
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post()
+  async createSavedFilter(
+    @Body() body: CreateSavedFilterDto,
+    @CurrentUser('sub') userId: string
+  ): Promise<SavedFilterDto> {
+    return this.savedFiltersService.createSavedFilter(userId, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get()
-  async listSavedFilters(): Promise<SavedFilterDto[]> {
-    return this.savedFiltersService.listSavedFilters();
+  async listSavedFilters(
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: AccessTokenPayload['role']
+  ): Promise<SavedFilterDto[]> {
+    return this.savedFiltersService.listSavedFilters(userId, role);
   }
 
   @Get('public')
@@ -26,21 +52,34 @@ export class SavedFiltersController {
     return this.savedFiltersService.listPublicSavedFilters(page, limit);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
-  async getSavedFilterById(@Param('id') id: string): Promise<SavedFilterDto> {
-    return this.savedFiltersService.getSavedFilterById(id);
+  async getSavedFilterById(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: AccessTokenPayload['role']
+  ): Promise<SavedFilterDto> {
+    return this.savedFiltersService.getSavedFilterById(id, userId, role);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   async updateSavedFilter(
     @Param('id') id: string,
-    @Body() body: UpdateSavedFilterDto
+    @Body() body: UpdateSavedFilterDto,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: AccessTokenPayload['role']
   ): Promise<SavedFilterDto> {
-    return this.savedFiltersService.updateSavedFilter(id, body);
+    return this.savedFiltersService.updateSavedFilter(id, userId, role, body);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async deleteSavedFilter(@Param('id') id: string): Promise<{ id: string; deleted: true }> {
-    return this.savedFiltersService.deleteSavedFilter(id);
+  async deleteSavedFilter(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: AccessTokenPayload['role']
+  ): Promise<{ id: string; deleted: true }> {
+    return this.savedFiltersService.deleteSavedFilter(id, userId, role);
   }
 }

@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { CreateSavedFilterDto } from './dto/create-saved-filter.dto.js';
@@ -8,7 +8,27 @@ import { UpdateSavedFilterDto } from './dto/update-saved-filter.dto.js';
 
 @Injectable()
 export class SavedFiltersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly prisma: PrismaService;
+
+  constructor(@Inject(PrismaService) prisma: PrismaService) {
+    this.prisma = prisma;
+  }
+
+  private isAdmin(role: UserRole | 'USER' | 'CREATOR' | 'ADMIN'): boolean {
+    return role === UserRole.ADMIN;
+  }
+
+  private assertCanManage(
+    savedFilterUserId: string,
+    requesterUserId: string,
+    requesterRole: UserRole | 'USER' | 'CREATOR' | 'ADMIN'
+  ): void {
+    if (savedFilterUserId === requesterUserId || this.isAdmin(requesterRole)) {
+      return;
+    }
+
+    throw new ForbiddenException('You do not have access to this saved filter');
+  }
 
   private toDto(savedFilter: {
     id: string;
@@ -34,10 +54,10 @@ export class SavedFiltersService {
     };
   }
 
-  async createSavedFilter(dto: CreateSavedFilterDto): Promise<SavedFilterDto> {
+  async createSavedFilter(userId: string, dto: CreateSavedFilterDto): Promise<SavedFilterDto> {
     const savedFilter = await this.prisma.savedFilter.create({
       data: {
-        userId: dto.userId,
+        userId,
         name: dto.name,
         description: dto.description,
         filters: dto.filters as Prisma.InputJsonValue,
@@ -48,8 +68,12 @@ export class SavedFiltersService {
     return this.toDto(savedFilter);
   }
 
-  async listSavedFilters(): Promise<SavedFilterDto[]> {
+  async listSavedFilters(
+    requesterUserId: string,
+    requesterRole: UserRole | 'USER' | 'CREATOR' | 'ADMIN'
+  ): Promise<SavedFilterDto[]> {
     const savedFilters = await this.prisma.savedFilter.findMany({
+      where: this.isAdmin(requesterRole) ? undefined : { userId: requesterUserId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -80,20 +104,35 @@ export class SavedFiltersService {
     };
   }
 
-  async getSavedFilterById(id: string): Promise<SavedFilterDto> {
+  async getSavedFilterById(
+    id: string,
+    requesterUserId: string,
+    requesterRole: UserRole | 'USER' | 'CREATOR' | 'ADMIN'
+  ): Promise<SavedFilterDto> {
     const savedFilter = await this.prisma.savedFilter.findUnique({ where: { id } });
     if (!savedFilter) {
       throw new NotFoundException('Saved filter not found');
     }
 
+    if (!savedFilter.isPublic) {
+      this.assertCanManage(savedFilter.userId, requesterUserId, requesterRole);
+    }
+
     return this.toDto(savedFilter);
   }
 
-  async updateSavedFilter(id: string, dto: UpdateSavedFilterDto): Promise<SavedFilterDto> {
+  async updateSavedFilter(
+    id: string,
+    requesterUserId: string,
+    requesterRole: UserRole | 'USER' | 'CREATOR' | 'ADMIN',
+    dto: UpdateSavedFilterDto
+  ): Promise<SavedFilterDto> {
     const existing = await this.prisma.savedFilter.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Saved filter not found');
     }
+
+    this.assertCanManage(existing.userId, requesterUserId, requesterRole);
 
     const updated = await this.prisma.savedFilter.update({
       where: { id },
@@ -108,11 +147,17 @@ export class SavedFiltersService {
     return this.toDto(updated);
   }
 
-  async deleteSavedFilter(id: string): Promise<{ id: string; deleted: true }> {
+  async deleteSavedFilter(
+    id: string,
+    requesterUserId: string,
+    requesterRole: UserRole | 'USER' | 'CREATOR' | 'ADMIN'
+  ): Promise<{ id: string; deleted: true }> {
     const existing = await this.prisma.savedFilter.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Saved filter not found');
     }
+
+    this.assertCanManage(existing.userId, requesterUserId, requesterRole);
 
     await this.prisma.savedFilter.delete({ where: { id } });
     return { id, deleted: true };
