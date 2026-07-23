@@ -20,6 +20,11 @@ type AuthUser = {
   role: UserRole;
 };
 
+type AuthUserWithSecrets = AuthUser & {
+  passwordHash?: string | null;
+  refreshTokenHash?: string | null;
+};
+
 type RefreshTokenPayload = {
   sub: string;
   email: string;
@@ -127,11 +132,20 @@ export class AuthService {
     return { revoked: true };
   }
 
-  private async issueAndPersistTokens(user: AuthUser): Promise<AuthResponseDto> {
-    const tokenPayload = {
-      sub: user.id,
+  private toAuthUser(user: AuthUserWithSecrets): AuthUser {
+    return {
+      id: user.id,
       email: user.email,
       role: user.role,
+    };
+  }
+
+  private async issueAndPersistTokens(user: AuthUserWithSecrets): Promise<AuthResponseDto> {
+    const safeUser = this.toAuthUser(user);
+    const tokenPayload = {
+      sub: safeUser.id,
+      email: safeUser.email,
+      role: safeUser.role,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -146,7 +160,7 @@ export class AuthService {
     ]);
 
     await this.prisma.user.update({
-      where: { id: user.id },
+      where: { id: safeUser.id },
       data: {
         refreshTokenHash: await hashPassword(refreshToken),
       },
@@ -155,7 +169,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user,
+      user: safeUser,
     };
   }
 }

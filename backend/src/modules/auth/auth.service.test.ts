@@ -72,6 +72,8 @@ describe('AuthService', () => {
     assert.equal(result.user.id, 'user-1');
     assert.equal(result.user.email, 'auth@example.com');
     assert.equal(result.user.role, UserRole.USER);
+    assert.equal('passwordHash' in result.user, false);
+    assert.equal('refreshTokenHash' in result.user, false);
     assert.ok(capturedPasswordHash);
     assert.match(capturedPasswordHash, /^scrypt\$/);
     assert.ok(capturedRefreshTokenHash);
@@ -160,6 +162,8 @@ describe('AuthService', () => {
     assert.equal(result.accessToken, 'access-user-2');
     assert.equal(result.refreshToken, 'refresh-user-2');
     assert.equal(result.user.role, UserRole.CREATOR);
+    assert.equal('passwordHash' in result.user, false);
+    assert.equal('refreshTokenHash' in result.user, false);
     assert.ok(capturedRefreshTokenHash);
     assert.match(capturedRefreshTokenHash, /^scrypt\$/);
   });
@@ -261,6 +265,8 @@ describe('AuthService', () => {
 
     assert.equal(result.accessToken, 'access-user-4-new');
     assert.equal(result.refreshToken, 'refresh-user-4-new');
+    assert.equal('passwordHash' in result.user, false);
+    assert.equal('refreshTokenHash' in result.user, false);
     assert.ok(capturedRefreshTokenHash);
     assert.match(capturedRefreshTokenHash, /^scrypt\$/);
   });
