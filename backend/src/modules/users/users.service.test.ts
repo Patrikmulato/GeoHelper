@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../../generated/prisma/index.js';
 import { UsersService } from './users.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 

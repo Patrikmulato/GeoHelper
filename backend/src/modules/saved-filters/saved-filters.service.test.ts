@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../../generated/prisma/index.js';
 import { SavedFiltersService } from './saved-filters.service.js';
 import type { CacheStore } from '../../common/cache/cache.store.js';
 import type { PrismaService } from '../prisma/prisma.service.js';

@@ -1,5 +1,5 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../../generated/prisma/index.js';
 import { hashPassword } from '../../common/utils/password-hash';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';

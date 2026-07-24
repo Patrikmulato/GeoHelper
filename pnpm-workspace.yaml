@@ -1,6 +1,9 @@
 packages:
   - .
   - backend
+publicHoistPattern:
+  - '@prisma/*'
+  - 'prisma'
 allowBuilds:
   '@nestjs/core': true
   '@prisma/engines': true

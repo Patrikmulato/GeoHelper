@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, UserRole } from '@prisma/client';
+import { Prisma, UserRole } from '../../../generated/prisma/index.js';
 import { CacheStore } from '../../common/cache/cache.store.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { parsePagination } from '../../common/utils/pagination.js';

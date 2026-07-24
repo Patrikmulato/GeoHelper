@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../../generated/prisma/index.js';
 import { hashPassword } from '../../common/utils/password-hash.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { AuthService } from './auth.service.js';
