@@ -1,0 +1,123 @@
+import assert from 'node:assert/strict';
+import { afterEach, describe, it } from 'node:test';
+import { CacheStore } from './cache.store.js';
+
+const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
+const originalToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+afterEach(() => {
+  process.env.UPSTASH_REDIS_REST_URL = originalUrl;
+  process.env.UPSTASH_REDIS_REST_TOKEN = originalToken;
+});
+
+describe('CacheStore', () => {
+  it('stores and retrieves values from in-memory fallback', async () => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const store = new CacheStore();
+    await store.set('a', 'value-a', 60);
+
+    const value = await store.get('a');
+
+    assert.equal(value, 'value-a');
+  });
+
+  it('expires in-memory values after ttl', async () => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const store = new CacheStore();
+    await store.set('b', 'value-b', 1);
+
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+
+    const value = await store.get('b');
+    assert.equal(value, undefined);
+  });
+
+  it('increments counters in memory fallback', async () => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const store = new CacheStore();
+
+    const first = await store.increment('counter-x');
+    const second = await store.increment('counter-x');
+
+    assert.equal(first, 1);
+    assert.equal(second, 2);
+  });
+
+  it('uses Upstash REST when configured', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://fake.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token';
+
+    const originalFetch = globalThis.fetch;
+    const calls: Array<{ url: string; auth?: string }> = [];
+
+    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      const authHeader =
+        init?.headers && typeof init.headers === 'object' && 'Authorization' in init.headers
+          ? String((init.headers as Record<string, string>).Authorization)
+          : undefined;
+
+      calls.push({ url, auth: authHeader });
+
+      if (url.includes('/get/')) {
+        return new Response(JSON.stringify({ result: 'from-upstash' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (url.includes('/incr/')) {
+        return new Response(JSON.stringify({ result: 5 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ result: 'OK' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof globalThis.fetch;
+
+    try {
+      const store = new CacheStore();
+      await store.set('key-1', 'value-1', 60);
+      const value = await store.get('key-1');
+      const counter = await store.increment('ctr-1');
+
+      assert.equal(value, 'from-upstash');
+      assert.equal(counter, 5);
+      assert.equal(calls.length, 3);
+      assert.equal(calls[0].auth, 'Bearer fake-token');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('falls back to memory when Upstash request errors', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://fake.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token';
+
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = (async () => {
+      throw new Error('network unavailable');
+    }) as typeof globalThis.fetch;
+
+    try {
+      const store = new CacheStore();
+      await store.set('resilient-key', 'resilient-value', 60);
+      const value = await store.get('resilient-key');
+
+      assert.equal(value, 'resilient-value');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});

@@ -5,6 +5,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../../app.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RateLimitStore } from '../../common/rate-limit/rate-limit.store.js';
 
 type MockSavedFilter = {
   id: string;
@@ -26,6 +27,7 @@ describe('SavedFiltersController authorization (e2e)', () => {
 
   const savedFilters = new Map<string, MockSavedFilter>();
   let nextId = 1;
+  const rateLimitHits = new Map<string, number>();
 
   const prismaMock = {
     user: {
@@ -163,12 +165,31 @@ describe('SavedFiltersController authorization (e2e)', () => {
       updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     });
     nextId = 100;
+    rateLimitHits.clear();
+
+    const rateLimitStoreMock = {
+      hit: async (key: string, maxRequests: number) => {
+        const nextHit = (rateLimitHits.get(key) ?? 0) + 1;
+        rateLimitHits.set(key, nextHit);
+
+        const allowed = nextHit <= maxRequests;
+
+        return {
+          allowed,
+          limit: maxRequests,
+          remaining: Math.max(0, maxRequests - nextHit),
+          retryAfterSeconds: 60,
+        };
+      },
+    };
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
+      .overrideProvider(RateLimitStore)
+      .useValue(rateLimitStoreMock)
       .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
@@ -300,5 +321,23 @@ describe('SavedFiltersController authorization (e2e)', () => {
     assert.equal(allowed.statusCode, 200, allowed.body);
     const body = allowed.json();
     assert.deepEqual(body, { id: 'owner-private', deleted: true });
+  });
+
+  it('GET /api/saved-filters/public returns 429 after exceeding configured threshold', async () => {
+    for (let index = 0; index < 60; index += 1) {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/saved-filters/public',
+      });
+
+      assert.equal(response.statusCode, 200, response.body);
+    }
+
+    const limited = await app.inject({
+      method: 'GET',
+      url: '/api/saved-filters/public',
+    });
+
+    assert.equal(limited.statusCode, 429, limited.body);
   });
 });

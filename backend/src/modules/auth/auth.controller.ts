@@ -7,6 +7,8 @@ import { LoginDto } from './dto/login.dto.js';
 import { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator.js';
+import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard.js';
 
 @Controller('auth')
 export class AuthController {
@@ -17,16 +19,22 @@ export class AuthController {
   }
 
   @Post('register')
+  @UseGuards(RateLimitGuard)
+  @RateLimit(10, 60_000)
   async register(@Body() body: RegisterDto): Promise<AuthResponseDto> {
     return this.authService.register(body);
   }
 
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @RateLimit(10, 60_000)
   async login(@Body() body: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(body);
   }
 
   @Post('refresh')
+  @UseGuards(RateLimitGuard)
+  @RateLimit(20, 60_000)
   async refresh(@Body() body: RefreshTokenDto): Promise<AuthResponseDto> {
     return this.authService.refresh(body);
   }
@@ -41,7 +49,8 @@ export class AuthController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @RateLimit(30, 60_000)
   @Post('logout')
   async logout(@CurrentUser('sub') userId: string): Promise<{ revoked: true }> {
     return this.authService.logout(userId);

@@ -14,8 +14,8 @@ Source: user-provided roadmap (2026-07-22), normalized into repo docs for portab
 ## Deployment strategy
 
 - Week 1-7: stay on Vercel (code-first focus)
-- Week 8: migrate backend runtime to Fly.io standalone deployment
-- Fly.io motivation: no cold starts, always-on process, easier in-memory/cache/rate-limit patterns, PostgreSQL support
+- Week 8: harden backend for Vercel serverless production runtime
+- Motivation: keep hosting free for hobby usage, reduce migration overhead, and prepare for serverless constraints (cold starts, pooled DB access, stateless runtime)
 
 ## Fazisok (10 hetes terv)
 
@@ -28,8 +28,8 @@ Source: user-provided roadmap (2026-07-22), normalized into repo docs for portab
 | 5   | Fazis 5  | Auth (register/login/JWT/hash)                       | Authentication         |
 | 6   | Fazis 6  | Guards + RBAC + ownership                            | Authorization          |
 | 7   | Fazis 7  | Unit + E2E hardening                                 | 80%+ coverage          |
-| 8   | Fazis 8  | Docker + Fly.io deploy                               | Production runtime     |
-| 9   | Fazis 9  | Caching + rate limiting                              | Performance/security   |
+| 8   | Fazis 8  | Vercel serverless hardening                          | Production runtime     |
+| 9   | Fazis 9  | External cache + rate limiting                       | Performance/security   |
 | 10  | Fazis 10 | Polish + docs + frontend integration                 | Launch-ready           |
 
 ## Fazis 1 scope
@@ -62,15 +62,15 @@ Source: user-provided roadmap (2026-07-22), normalized into repo docs for portab
 - Logger module/service wrappers and log decorators
 - Request tracing by correlation ID
 
-## Fazis 8 migration note (Fly.io)
+## Fazis 8 hardening note (Vercel serverless)
 
-When moving from serverless handler to standalone runtime:
+When staying on Vercel serverless runtime:
 
-1. `backend/src/main.ts` should run `app.listen(PORT, '0.0.0.0')`
-2. Add `backend/fly.toml`
-3. Provision Fly Postgres and secrets
-4. Deploy with `fly deploy`
-5. Keep health endpoint for runtime checks
+1. Keep the serverless handler (`backend/api/index.ts`) as the deployment entrypoint
+2. Configure Vercel function limits/behavior in `backend/vercel.json`
+3. Ensure production secrets are present (`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`)
+4. Use a pooled PostgreSQL connection string for Prisma in serverless traffic patterns
+5. Keep health endpoint for runtime checks (`/api/health`)
 
 ## Weekly checklist
 
@@ -89,4 +89,5 @@ When moving from serverless handler to standalone runtime:
 
 - NestJS docs: https://docs.nestjs.com
 - Prisma docs: https://www.prisma.io/docs
-- Fly.io docs: https://fly.io/docs
+- Vercel docs: https://vercel.com/docs
+- Upstash docs: https://upstash.com/docs
