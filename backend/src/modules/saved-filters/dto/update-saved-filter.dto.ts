@@ -1,4 +1,15 @@
-import { IsBoolean, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
+import { FilterRequestDto } from '../../data/dto/filter-request.dto.js';
 
 export class UpdateSavedFilterDto {
   @IsOptional()
@@ -12,9 +23,13 @@ export class UpdateSavedFilterDto {
   @MaxLength(280)
   description?: string;
 
-  @IsOptional()
+  // ValidateIf (rather than IsOptional) so an explicit `null` is still rejected;
+  // only a genuinely absent property skips validation.
+  @ValidateIf((_object, value) => value !== undefined)
   @IsObject()
-  filters?: Record<string, unknown>;
+  @ValidateNested()
+  @Type(() => FilterRequestDto)
+  filters?: FilterRequestDto;
 
   @IsOptional()
   @IsBoolean()

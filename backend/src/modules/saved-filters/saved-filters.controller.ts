@@ -9,6 +9,7 @@ import {
   Put,
   Query,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
@@ -31,7 +32,18 @@ export class SavedFiltersController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async createSavedFilter(
-    @Body() body: CreateSavedFilterDto,
+    // The global ValidationPipe can't infer the @Body() metatype in this build
+    // (no emitted design:paramtypes metadata), so it silently skips validation
+    // unless the expected type is passed explicitly here.
+    @Body(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        expectedType: CreateSavedFilterDto,
+      })
+    )
+    body: CreateSavedFilterDto,
     @CurrentUser('sub') userId: string
   ): Promise<SavedFilterDto> {
     return this.savedFiltersService.createSavedFilter(userId, body);
@@ -44,6 +56,12 @@ export class SavedFiltersController {
     @CurrentUser('role') role: AccessTokenPayload['role']
   ): Promise<SavedFilterDto[]> {
     return this.savedFiltersService.listSavedFilters(userId, role);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('mine')
+  async listOwnSavedFilters(@CurrentUser('sub') userId: string): Promise<SavedFilterDto[]> {
+    return this.savedFiltersService.listOwnSavedFilters(userId);
   }
 
   @Get('public')
@@ -70,7 +88,17 @@ export class SavedFiltersController {
   @Put(':id')
   async updateSavedFilter(
     @Param('id') id: string,
-    @Body() body: UpdateSavedFilterDto,
+    // See createSavedFilter above: the expectedType must be explicit for
+    // validation to actually run.
+    @Body(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        expectedType: UpdateSavedFilterDto,
+      })
+    )
+    body: UpdateSavedFilterDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: AccessTokenPayload['role']
   ): Promise<SavedFilterDto> {
