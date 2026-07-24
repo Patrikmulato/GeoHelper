@@ -1,0 +1,20 @@
+import type { INestApplication } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
+export function setupSwagger(app: INestApplication): void {
+  // API docs expose the full schema surface (auth, users, saved filters);
+  // keep them out of production.
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+
+  const config = new DocumentBuilder()
+    .setTitle('GeoGuessr Helper API')
+    .setDescription('Backend API for map data, authentication, saved filters, and users.')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+}

@@ -4,6 +4,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { ValidationExceptionFilter } from './common/filters/validation.exception.filter.js';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
 import { getAppConfig } from './config/app.config.js';
+import { setupSwagger } from './swagger.config.js';
 
 type SetupOptions = {
   withGlobalPrefix?: boolean;
@@ -73,4 +74,7 @@ export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}
   if (withGlobalPrefix) {
     app.setGlobalPrefix('api');
   }
+
+  // API docs at /api/docs (Swagger UI + OpenAPI JSON).
+  setupSwagger(app);
 }
