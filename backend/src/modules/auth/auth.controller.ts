@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, UseGuards, ValidationPipe } from '@nestjs/common';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import { AuthService } from './auth.service.js';
 import type { AccessTokenPayload } from './auth.types.js';
@@ -21,21 +21,54 @@ export class AuthController {
   @Post('register')
   @UseGuards(RateLimitGuard)
   @RateLimit(10, 60_000)
-  async register(@Body() body: RegisterDto): Promise<AuthResponseDto> {
+  async register(
+    // The global ValidationPipe can't infer the @Body() metatype in this build
+    // (no emitted design:paramtypes metadata), so it silently skips validation
+    // unless the expected type is passed explicitly here.
+    @Body(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        expectedType: RegisterDto,
+      })
+    )
+    body: RegisterDto
+  ): Promise<AuthResponseDto> {
     return this.authService.register(body);
   }
 
   @Post('login')
   @UseGuards(RateLimitGuard)
   @RateLimit(10, 60_000)
-  async login(@Body() body: LoginDto): Promise<AuthResponseDto> {
+  async login(
+    @Body(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        expectedType: LoginDto,
+      })
+    )
+    body: LoginDto
+  ): Promise<AuthResponseDto> {
     return this.authService.login(body);
   }
 
   @Post('refresh')
   @UseGuards(RateLimitGuard)
   @RateLimit(20, 60_000)
-  async refresh(@Body() body: RefreshTokenDto): Promise<AuthResponseDto> {
+  async refresh(
+    @Body(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        expectedType: RefreshTokenDto,
+      })
+    )
+    body: RefreshTokenDto
+  ): Promise<AuthResponseDto> {
     return this.authService.refresh(body);
   }
 
