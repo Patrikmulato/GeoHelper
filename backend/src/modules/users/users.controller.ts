@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Inject, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  UseGuards,
+  ValidationPipe,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { RolesGuard } from '../auth/roles.guard.js';
@@ -17,7 +26,20 @@ export class UsersController {
   }
 
   @Post()
-  async createUser(@Body() body: CreateUserDto): Promise<UserDto> {
+  async createUser(
+    // The global ValidationPipe can't infer the @Body() metatype in this build
+    // (no emitted design:paramtypes metadata), so it silently skips validation
+    // unless the expected type is passed explicitly here.
+    @Body(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        expectedType: CreateUserDto,
+      })
+    )
+    body: CreateUserDto
+  ): Promise<UserDto> {
     return this.usersService.createUser(body);
   }
 

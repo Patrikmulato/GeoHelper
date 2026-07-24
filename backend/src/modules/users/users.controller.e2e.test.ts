@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
+import { ValidationPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -67,6 +68,13 @@ describe('UsersController RBAC (e2e)', () => {
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     app.setGlobalPrefix('api');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      })
+    );
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
 
@@ -169,5 +177,38 @@ describe('UsersController RBAC (e2e)', () => {
     });
 
     assert.equal(response.statusCode, 401, response.body);
+  });
+
+  it('POST /api/users returns 400 for a malformed email', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/users',
+      headers: {
+        authorization: `Bearer ${adminAccessToken}`,
+      },
+      payload: {
+        email: 'not-an-email',
+        password: 'super-secret-123',
+      },
+    });
+
+    assert.equal(response.statusCode, 400, response.body);
+  });
+
+  it('POST /api/users returns 400 for an invalid role', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/users',
+      headers: {
+        authorization: `Bearer ${adminAccessToken}`,
+      },
+      payload: {
+        email: 'new-role-user@example.com',
+        password: 'super-secret-123',
+        role: 'SUPERUSER',
+      },
+    });
+
+    assert.equal(response.statusCode, 400, response.body);
   });
 });
