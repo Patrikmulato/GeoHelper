@@ -1,6 +1,11 @@
 packages:
   - .
   - backend
+publicHoistPattern:
+  - '@prisma/*'
+  - 'prisma'
+  - 'jsonwebtoken'
+  - '@types/jsonwebtoken'
 allowBuilds:
   '@nestjs/core': true
   '@prisma/engines': true

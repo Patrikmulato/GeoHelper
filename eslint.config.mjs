@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
     // Generated artifacts
     'backend/dist/**',
+    'backend/generated/**',
     'coverage/**',
   ]),
 ]);

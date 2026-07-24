@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../../generated/prisma/index.js';
 import { AppModule } from '../../app.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
