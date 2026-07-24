@@ -1,17 +1,26 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, UserRole } from '@prisma/client';
+import { CacheStore } from '../../common/cache/cache.store.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { CreateSavedFilterDto } from './dto/create-saved-filter.dto.js';
 import { PaginatedSavedFiltersDto, SavedFilterDto } from './dto/saved-filter.dto.js';
 import { UpdateSavedFilterDto } from './dto/update-saved-filter.dto.js';
 
+const PUBLIC_SAVED_FILTERS_VERSION_KEY = 'cache:saved-filters:public:version';
+const PUBLIC_SAVED_FILTERS_TTL_SECONDS = 120;
+
 @Injectable()
 export class SavedFiltersService {
   private readonly prisma: PrismaService;
+  private readonly cacheStore: CacheStore;
 
-  constructor(@Inject(PrismaService) prisma: PrismaService) {
+  constructor(
+    @Inject(PrismaService) prisma: PrismaService,
+    @Inject(CacheStore) cacheStore: CacheStore
+  ) {
     this.prisma = prisma;
+    this.cacheStore = cacheStore;
   }
 
   private isAdmin(role: UserRole | 'USER' | 'CREATOR' | 'ADMIN'): boolean {
@@ -54,6 +63,41 @@ export class SavedFiltersService {
     };
   }
 
+  private buildPublicCacheKey(version: number, page: number, limit: number): string {
+    return `cache:saved-filters:public:v${version}:p${page}:l${limit}`;
+  }
+
+  private async getPublicCacheVersion(): Promise<number> {
+    const raw = await this.cacheStore.get(PUBLIC_SAVED_FILTERS_VERSION_KEY);
+    if (!raw) {
+      return 0;
+    }
+
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private hydrateCachedPublicResult(raw: string): PaginatedSavedFiltersDto | undefined {
+    try {
+      const parsed = JSON.parse(raw) as PaginatedSavedFiltersDto;
+
+      return {
+        ...parsed,
+        items: parsed.items.map((item) => ({
+          ...item,
+          createdAt: new Date(item.createdAt),
+          updatedAt: new Date(item.updatedAt),
+        })),
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async bumpPublicCacheVersion(): Promise<void> {
+    await this.cacheStore.increment(PUBLIC_SAVED_FILTERS_VERSION_KEY);
+  }
+
   async createSavedFilter(userId: string, dto: CreateSavedFilterDto): Promise<SavedFilterDto> {
     const savedFilter = await this.prisma.savedFilter.create({
       data: {
@@ -64,6 +108,8 @@ export class SavedFiltersService {
         isPublic: dto.isPublic ?? false,
       },
     });
+
+    await this.bumpPublicCacheVersion();
 
     return this.toDto(savedFilter);
   }
@@ -86,6 +132,16 @@ export class SavedFiltersService {
   ): Promise<PaginatedSavedFiltersDto> {
     const pagination = parsePagination(pageRaw, limitRaw);
 
+    const version = await this.getPublicCacheVersion();
+    const cacheKey = this.buildPublicCacheKey(version, pagination.page, pagination.limit);
+    const cached = await this.cacheStore.get(cacheKey);
+    if (cached) {
+      const hydrated = this.hydrateCachedPublicResult(cached);
+      if (hydrated) {
+        return hydrated;
+      }
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.savedFilter.findMany({
         where: { isPublic: true },
@@ -96,12 +152,16 @@ export class SavedFiltersService {
       this.prisma.savedFilter.count({ where: { isPublic: true } }),
     ]);
 
-    return {
+    const result: PaginatedSavedFiltersDto = {
       items: items.map((savedFilter) => this.toDto(savedFilter)),
       total,
       page: pagination.page,
       limit: pagination.limit,
     };
+
+    await this.cacheStore.set(cacheKey, JSON.stringify(result), PUBLIC_SAVED_FILTERS_TTL_SECONDS);
+
+    return result;
   }
 
   async getSavedFilterById(
@@ -144,6 +204,8 @@ export class SavedFiltersService {
       },
     });
 
+    await this.bumpPublicCacheVersion();
+
     return this.toDto(updated);
   }
 
@@ -160,6 +222,7 @@ export class SavedFiltersService {
     this.assertCanManage(existing.userId, requesterUserId, requesterRole);
 
     await this.prisma.savedFilter.delete({ where: { id } });
+    await this.bumpPublicCacheVersion();
     return { id, deleted: true };
   }
 }
