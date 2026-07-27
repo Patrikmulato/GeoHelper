@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
@@ -8,6 +9,7 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
+import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { RolesGuard } from '../auth/roles.guard.js';
@@ -51,5 +53,13 @@ export class UsersController {
   @Get(':id')
   async getUserById(@Param('id') id: string): Promise<UserDto> {
     return this.usersService.getUserById(id);
+  }
+
+  @Delete(':id')
+  async deleteUserById(
+    @Param('id') id: string,
+    @CurrentUser('sub') actorUserId: string
+  ): Promise<{ id: string; deleted: true }> {
+    return this.usersService.deleteUserById(id, actorUserId);
   }
 }
