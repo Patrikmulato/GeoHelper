@@ -49,6 +49,23 @@ describe('CacheStore', () => {
     assert.equal(second, 2);
   });
 
+  it('exposes incremented counter through get() in memory fallback', async () => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const store = new CacheStore();
+
+    // Regression: increment() must write to the same store get() reads, so a
+    // version bump is visible without Upstash (public-filter cache invalidation).
+    assert.equal(await store.get('version-key'), undefined);
+
+    await store.increment('version-key');
+    assert.equal(await store.get('version-key'), '1');
+
+    await store.increment('version-key');
+    assert.equal(await store.get('version-key'), '2');
+  });
+
   it('uses Upstash REST when configured', async () => {
     process.env.UPSTASH_REDIS_REST_URL = 'https://fake.upstash.io';
     process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token';

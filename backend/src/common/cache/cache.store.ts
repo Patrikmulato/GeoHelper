@@ -12,7 +12,6 @@ const UPSTASH_REQUEST_TIMEOUT_MS = 2000;
 @Injectable()
 export class CacheStore {
   private readonly memory = new Map<string, MemoryCacheEntry>();
-  private readonly memoryCounters = new Map<string, number>();
   private readonly logger: LoggerService;
 
   constructor(logger: LoggerService = new LoggerService()) {
@@ -102,8 +101,13 @@ export class CacheStore {
       }
     }
 
-    const next = (this.memoryCounters.get(key) ?? 0) + 1;
-    this.memoryCounters.set(key, next);
+    // Keep the counter in the same `memory` map that get() reads, so version
+    // bumps are actually visible in the in-memory (no-Upstash) path. Counters
+    // must not expire, hence the far-future expiry.
+    const entry = this.memory.get(key);
+    const current = entry ? Number(entry.value) : 0;
+    const next = (Number.isFinite(current) ? current : 0) + 1;
+    this.memory.set(key, { value: String(next), expiresAtMs: Number.MAX_SAFE_INTEGER });
     return next;
   }
 

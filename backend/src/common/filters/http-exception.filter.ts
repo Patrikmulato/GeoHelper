@@ -1,6 +1,7 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { getCorrelationId } from '../logger/correlation-context.js';
+import { LoggerService } from '../logger/logger.service.js';
 
 export interface ApiErrorResponse {
   success: false;
@@ -16,6 +17,8 @@ export interface ApiErrorResponse {
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  constructor(private readonly logger: LoggerService = new LoggerService()) {}
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<FastifyRequest>();
@@ -46,7 +49,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = exceptionResponse as string;
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      // Log the real error server-side but do NOT leak internal details to the
+      // client; the generic "Internal server error" message above is returned.
+      this.logger.error('HttpExceptionFilter', 'Unhandled exception', {
+        error: exception.message,
+        stack: exception.stack,
+        path: request.url,
+      });
     }
 
     const apiErrorResponse: ApiErrorResponse = {

@@ -18,6 +18,20 @@ import { FilterResponseDto } from './dto/filter-response.dto.js';
 
 const FILTER_CACHE_MAX_ENTRIES = 300;
 
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+// Escape values interpolated into server-built tooltip HTML so data-sourced
+// strings (including crawler-appended country names/labels) cannot inject markup.
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => HTML_ESCAPES[char] ?? char);
+}
+
 @Injectable()
 export class DataService {
   constructor(private readonly logger: LoggerService = new LoggerService()) {}
@@ -41,14 +55,14 @@ export class DataService {
   }
 
   private buildTooltip(country: string): string {
-    const parts: string[] = [`<strong>${country}</strong>`];
+    const parts: string[] = [`<strong>${escapeHtml(country)}</strong>`];
 
     const side = drivingSideData[country];
-    parts.push(side ? `Driving: ${side}` : 'Driving: No data');
+    parts.push(side ? `Driving: ${escapeHtml(side)}` : 'Driving: No data');
 
     const patterns = roadLinesData[country];
     if (patterns && patterns.length > 0) {
-      parts.push(...patterns.map((p) => linePatternLabels[p]));
+      parts.push(...patterns.map((p) => escapeHtml(linePatternLabels[p] ?? p)));
     } else {
       parts.push('Lines: No data');
     }
@@ -66,10 +80,10 @@ export class DataService {
     parts.push(gens.length > 0 ? `Camera: Gen ${gens.join(', ')}` : 'Camera: No data');
 
     const colors = carColorData[country] ?? ['white'];
-    parts.push(`Car color: ${colors.join(', ')}`);
+    parts.push(`Car color: ${escapeHtml(colors.join(', '))}`);
 
     const vehicle = vehicleTypeData[country] ?? 'car';
-    if (vehicle !== 'car') parts.push(`Vehicle: ${vehicle}`);
+    if (vehicle !== 'car') parts.push(`Vehicle: ${escapeHtml(vehicle)}`);
 
     return parts.join('<br/>');
   }

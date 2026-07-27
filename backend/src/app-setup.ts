@@ -6,6 +6,11 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor.
 import { getAppConfig } from './config/app.config.js';
 import { setupSwagger } from './swagger.config.js';
 
+// Matches this project's Vercel preview deployments (e.g.
+// geo-helpers-git-branch-team.vercel.app) without trusting arbitrary
+// *.vercel.app origins, which would otherwise allow any attacker-deployed site.
+const VERCEL_PREVIEW_ORIGIN = /^https:\/\/geo-helpers-[a-z0-9-]+\.vercel\.app$/;
+
 type SetupOptions = {
   withGlobalPrefix?: boolean;
 };
@@ -41,8 +46,8 @@ export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}
         return;
       }
 
-      // Allow any Vercel preview deployment from your account (*.vercel.app)
-      if (origin.endsWith('.vercel.app')) {
+      // Allow only this project's Vercel preview deployments, not any *.vercel.app.
+      if (VERCEL_PREVIEW_ORIGIN.test(origin)) {
         callback(null, true);
         return;
       }
