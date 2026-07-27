@@ -9,7 +9,6 @@ const TABS = [
   { label: 'World Map', href: '/' },
   { label: 'US Plates', href: '/us-plates' },
   { label: 'Useful Maps', href: '/useful-maps' },
-  { label: 'Public Filters', href: '/filters' },
 ];
 
 export default function Navbar() {

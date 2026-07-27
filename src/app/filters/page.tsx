@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { listPublicSavedFilters } from '@/lib/api/saved-filters';
+import { useAuth } from '@/lib/auth/AuthProvider';
 import { setPendingFilter } from '@/lib/saved-filters/pending-filter';
 import type { SavedFilter } from '@/types/saved-filters';
 
@@ -10,6 +12,7 @@ const PAGE_SIZE = 20;
 
 export default function PublicFiltersPage() {
   const router = useRouter();
+  const { status } = useAuth();
   const [items, setItems] = useState<SavedFilter[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -51,6 +54,14 @@ export default function PublicFiltersPage() {
         <p className="mb-4 text-sm text-zinc-400">
           Community-shared filter presets. Apply one to load it on the map.
         </p>
+        {status === 'authenticated' && (
+          <Link
+            href="/#saved-filters"
+            className="mb-4 inline-flex rounded border border-zinc-700 px-3 py-1.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+          >
+            Manage my saved filters
+          </Link>
+        )}
 
         {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
 

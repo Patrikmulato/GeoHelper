@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import FilterDropdown from '@/components/FilterDropdown';
@@ -480,6 +481,15 @@ export default function Home() {
 
       {/* Map */}
       <main className="relative min-w-0 flex-1">
+        <div className="pointer-events-none absolute bottom-3 right-3 z-[500] sm:bottom-4 sm:right-4">
+          <Link
+            href="/filters"
+            className="pointer-events-auto inline-flex rounded-full border border-zinc-700 bg-[#20262e]/95 px-3 py-1.5 text-xs font-semibold text-zinc-100 shadow-lg transition-colors hover:border-zinc-500 hover:bg-[#27303b]"
+          >
+            Public Filters
+          </Link>
+        </div>
+
         {initialError ? (
           <div className="flex h-full items-center justify-center text-red-400">{initialError}</div>
         ) : geojson && mapData && filteredCountries ? (

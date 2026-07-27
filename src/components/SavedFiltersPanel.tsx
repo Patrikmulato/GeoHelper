@@ -111,7 +111,7 @@ export default function SavedFiltersPanel({ currentFilters, onApply }: SavedFilt
   }
 
   return (
-    <div className="mb-3 border-t border-zinc-800 pt-3">
+    <div id="saved-filters" className="mb-3 border-t border-zinc-800 pt-3">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
         Saved Filters
       </p>
