@@ -141,6 +141,10 @@ Recommended:
 
 - Use a pooled PostgreSQL URL for serverless traffic patterns.
 - Keep preview and production env vars aligned.
+- To bootstrap selected administrators without exposing a public promotion endpoint,
+  set `ADMIN_EMAILS` to a comma-separated allowlist, for example
+  `admin@example.com,another-admin@example.com`. Matching users become `ADMIN`
+  when they register or next log in.
 
 ### Optional Phase 9 prep (free external rate limiting store)
 

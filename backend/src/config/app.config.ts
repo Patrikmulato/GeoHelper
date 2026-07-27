@@ -3,12 +3,22 @@ export type AppConfig = {
   nodeEnv: string;
   corsOrigin?: string;
   frontendUrl?: string;
+  adminEmails: ReadonlySet<string>;
 };
 
 function requireProductionEnvVar(name: string): void {
   if (!process.env[name]) {
     throw new Error(`${name} is required in production`);
   }
+}
+
+function parseAdminEmails(value: string | undefined): ReadonlySet<string> {
+  return new Set(
+    (value ?? '')
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean)
+  );
 }
 
 export function getAppConfig(): AppConfig {
@@ -30,5 +40,6 @@ export function getAppConfig(): AppConfig {
     nodeEnv,
     corsOrigin: process.env.CORS_ORIGIN,
     frontendUrl: process.env.FRONTEND_URL,
+    adminEmails: parseAdminEmails(process.env.ADMIN_EMAILS),
   };
 }

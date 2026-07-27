@@ -138,6 +138,8 @@ describe('AuthController (e2e)', () => {
     assert.equal(typeof registerBody.refreshToken, 'string');
     assert.equal(registerBody.user.email, email);
     assert.equal(registerBody.user.role, 'USER');
+    assert.equal('password' in registerBody, false);
+    assert.equal('passwordHash' in registerBody.user, false);
 
     const loginRes = await app.inject({
       method: 'POST',
