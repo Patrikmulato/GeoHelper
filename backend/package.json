@@ -25,6 +25,7 @@
     "pipeline:ai": "pnpm extract:guides:ai && pnpm merge:ai"
   },
   "dependencies": {
+    "@fastify/static": "^10.1.2",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
     "@nestjs/jwt": "^11.0.2",

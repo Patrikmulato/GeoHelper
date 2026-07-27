@@ -2,11 +2,8 @@ import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 export function setupSwagger(app: INestApplication): void {
-  // API docs expose the full schema surface (auth, users, saved filters);
-  // keep them out of production.
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
+  // API docs expose the full schema surface (auth, users, saved filters)
+  // across environments.
 
   const config = new DocumentBuilder()
     .setTitle('GeoGuessr Helper API')
