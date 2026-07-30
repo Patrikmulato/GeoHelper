@@ -4,7 +4,11 @@ export type AppConfig = {
   corsOrigin?: string;
   frontendUrl?: string;
   adminEmails: ReadonlySet<string>;
+  cacheOutagePolicy: OutagePolicy;
+  rateLimitOutagePolicy: OutagePolicy;
 };
+
+export type OutagePolicy = 'fail-closed' | 'fail-open';
 
 function requireProductionEnvVar(name: string): void {
   if (!process.env[name]) {
@@ -19,6 +23,18 @@ function parseAdminEmails(value: string | undefined): ReadonlySet<string> {
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean)
   );
+}
+
+function parseOutagePolicy(value: string | undefined, fallback: OutagePolicy): OutagePolicy {
+  if (!value) {
+    return fallback;
+  }
+
+  if (value === 'fail-closed' || value === 'fail-open') {
+    return value;
+  }
+
+  throw new Error(`Invalid outage policy \"${value}\". Use \"fail-closed\" or \"fail-open\".`);
 }
 
 export function getAppConfig(): AppConfig {
@@ -43,5 +59,7 @@ export function getAppConfig(): AppConfig {
     corsOrigin: process.env.CORS_ORIGIN,
     frontendUrl: process.env.FRONTEND_URL,
     adminEmails: parseAdminEmails(process.env.ADMIN_EMAILS),
+    cacheOutagePolicy: parseOutagePolicy(process.env.CACHE_OUTAGE_POLICY, 'fail-open'),
+    rateLimitOutagePolicy: parseOutagePolicy(process.env.RATE_LIMIT_OUTAGE_POLICY, 'fail-open'),
   };
 }

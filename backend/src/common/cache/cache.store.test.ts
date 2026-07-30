@@ -155,4 +155,26 @@ describe('CacheStore', () => {
       }
     );
   });
+
+  it('falls back to memory when policy is fail-open and Upstash errors', async () => {
+    process.env.NODE_ENV = 'development';
+    process.env.CACHE_OUTAGE_POLICY = 'fail-open';
+    process.env.UPSTASH_REDIS_REST_URL = 'https://fake.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token';
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      throw new Error('network unavailable');
+    }) as typeof globalThis.fetch;
+
+    try {
+      const store = new CacheStore();
+      await store.set('policy-fallback', 'ok', 60);
+      const value = await store.get('policy-fallback');
+      assert.equal(value, 'ok');
+    } finally {
+      globalThis.fetch = originalFetch;
+      delete process.env.CACHE_OUTAGE_POLICY;
+    }
+  });
 });

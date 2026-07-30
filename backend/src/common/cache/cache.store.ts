@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '../logger/logger.service.js';
+import { getAppConfig } from '../../config/app.config.js';
 
 type MemoryCacheEntry = {
   value: string;
@@ -27,9 +28,13 @@ export class CacheStore {
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
     if (!upstashUrl || !upstashToken) {
-      if (isProduction()) {
+      if (this.shouldFailClosed()) {
         throw new Error('Upstash Redis store is required in production for shared cache');
       }
+
+      this.logger.warn('CacheStore', 'Using in-memory fallback by policy', {
+        policy: getAppConfig().cacheOutagePolicy,
+      });
     }
 
     if (upstashUrl && upstashToken) {
@@ -46,7 +51,7 @@ export class CacheStore {
           key,
           error: message,
         });
-        if (isProduction()) {
+        if (this.shouldFailClosed()) {
           throw new Error('Upstash Redis store is required in production for shared cache');
         }
         // Fall back to memory when Upstash is unavailable.
@@ -71,9 +76,13 @@ export class CacheStore {
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
     if (!upstashUrl || !upstashToken) {
-      if (isProduction()) {
+      if (this.shouldFailClosed()) {
         throw new Error('Upstash Redis store is required in production for shared cache');
       }
+
+      this.logger.warn('CacheStore', 'Using in-memory fallback by policy', {
+        policy: getAppConfig().cacheOutagePolicy,
+      });
     }
 
     if (upstashUrl && upstashToken) {
@@ -91,7 +100,7 @@ export class CacheStore {
           ttlSeconds,
           error: message,
         });
-        if (isProduction()) {
+        if (this.shouldFailClosed()) {
           throw new Error('Upstash Redis store is required in production for shared cache');
         }
         // Fall back to memory when Upstash is unavailable.
@@ -108,9 +117,13 @@ export class CacheStore {
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
     if (!upstashUrl || !upstashToken) {
-      if (isProduction()) {
+      if (this.shouldFailClosed()) {
         throw new Error('Upstash Redis store is required in production for shared cache');
       }
+
+      this.logger.warn('CacheStore', 'Using in-memory fallback by policy', {
+        policy: getAppConfig().cacheOutagePolicy,
+      });
     }
 
     if (upstashUrl && upstashToken) {
@@ -125,7 +138,7 @@ export class CacheStore {
           key,
           error: message,
         });
-        if (isProduction()) {
+        if (this.shouldFailClosed()) {
           throw new Error('Upstash Redis store is required in production for shared cache');
         }
         // Fall back to memory when Upstash is unavailable.
@@ -174,5 +187,13 @@ export class CacheStore {
         this.memory.delete(key);
       }
     }
+  }
+
+  private shouldFailClosed(): boolean {
+    if (isProduction()) {
+      return true;
+    }
+
+    return getAppConfig().cacheOutagePolicy === 'fail-closed';
   }
 }

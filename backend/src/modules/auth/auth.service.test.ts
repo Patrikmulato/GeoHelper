@@ -15,7 +15,7 @@ type JwtServiceLike = {
 };
 
 describe('AuthService', () => {
-  it('register creates a user and returns access token', async () => {
+  it('register creates a user and returns issued session', async () => {
     let capturedPasswordHash: string | undefined;
     let capturedRefreshTokenHash: string | undefined;
 
@@ -67,13 +67,13 @@ describe('AuthService', () => {
       password: 'super-secret',
     });
 
-    assert.equal(result.accessToken, 'access-user-1');
+    assert.equal(result.response.accessToken, 'access-user-1');
     assert.equal(result.refreshToken, 'refresh-user-1');
-    assert.equal(result.user.id, 'user-1');
-    assert.equal(result.user.email, 'auth@example.com');
-    assert.equal(result.user.role, UserRole.USER);
-    assert.equal('passwordHash' in result.user, false);
-    assert.equal('refreshTokenHash' in result.user, false);
+    assert.equal(result.response.user.id, 'user-1');
+    assert.equal(result.response.user.email, 'auth@example.com');
+    assert.equal(result.response.user.role, UserRole.USER);
+    assert.equal('passwordHash' in result.response.user, false);
+    assert.equal('refreshTokenHash' in result.response.user, false);
     assert.ok(capturedPasswordHash);
     assert.match(capturedPasswordHash, /^scrypt\$/);
     assert.ok(capturedRefreshTokenHash);
@@ -117,7 +117,7 @@ describe('AuthService', () => {
       });
 
       assert.equal(capturedRole, UserRole.ADMIN);
-      assert.equal(result.user.role, UserRole.ADMIN);
+      assert.equal(result.response.user.role, UserRole.ADMIN);
     } finally {
       if (originalAdminEmails === undefined) {
         delete process.env.ADMIN_EMAILS;
@@ -169,7 +169,7 @@ describe('AuthService', () => {
       const result = await service.login({ email: 'admin@example.com', password: 'super-secret' });
 
       assert.equal(promotedRole, UserRole.ADMIN);
-      assert.equal(result.user.role, UserRole.ADMIN);
+      assert.equal(result.response.user.role, UserRole.ADMIN);
     } finally {
       if (originalAdminEmails === undefined) {
         delete process.env.ADMIN_EMAILS;
@@ -212,7 +212,7 @@ describe('AuthService', () => {
     );
   });
 
-  it('login returns access token for valid credentials', async () => {
+  it('login returns issued session for valid credentials', async () => {
     const storedHash = await hashPassword('super-secret');
     let capturedRefreshTokenHash: string | undefined;
 
@@ -258,11 +258,11 @@ describe('AuthService', () => {
 
     const result = await service.login({ email: 'login@example.com', password: 'super-secret' });
 
-    assert.equal(result.accessToken, 'access-user-2');
+    assert.equal(result.response.accessToken, 'access-user-2');
     assert.equal(result.refreshToken, 'refresh-user-2');
-    assert.equal(result.user.role, UserRole.CREATOR);
-    assert.equal('passwordHash' in result.user, false);
-    assert.equal('refreshTokenHash' in result.user, false);
+    assert.equal(result.response.user.role, UserRole.CREATOR);
+    assert.equal('passwordHash' in result.response.user, false);
+    assert.equal('refreshTokenHash' in result.response.user, false);
     assert.ok(capturedRefreshTokenHash);
     assert.match(capturedRefreshTokenHash, /^scrypt\$/);
   });
@@ -360,12 +360,12 @@ describe('AuthService', () => {
       jwtMock as AuthService['jwtService']
     );
 
-    const result = await service.refresh({ refreshToken: 'refresh-user-4' });
+    const result = await service.refresh('refresh-user-4');
 
-    assert.equal(result.accessToken, 'access-user-4-new');
+    assert.equal(result.response.accessToken, 'access-user-4-new');
     assert.equal(result.refreshToken, 'refresh-user-4-new');
-    assert.equal('passwordHash' in result.user, false);
-    assert.equal('refreshTokenHash' in result.user, false);
+    assert.equal('passwordHash' in result.response.user, false);
+    assert.equal('refreshTokenHash' in result.response.user, false);
     assert.ok(capturedRefreshTokenHash);
     assert.match(capturedRefreshTokenHash, /^scrypt\$/);
   });

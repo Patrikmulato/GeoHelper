@@ -97,4 +97,28 @@ describe('RateLimitStore', () => {
       }
     );
   });
+
+  it('falls back to memory when policy is fail-open and Upstash errors', async () => {
+    process.env.NODE_ENV = 'development';
+    process.env.RATE_LIMIT_OUTAGE_POLICY = 'fail-open';
+    process.env.UPSTASH_REDIS_REST_URL = 'https://example.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      throw new Error('upstash unavailable');
+    }) as typeof fetch;
+
+    try {
+      const store = new RateLimitStore();
+      const first = await store.hit('fallback-key', 1, 60_000);
+      const second = await store.hit('fallback-key', 1, 60_000);
+
+      assert.equal(first.allowed, true);
+      assert.equal(second.allowed, false);
+    } finally {
+      globalThis.fetch = originalFetch;
+      delete process.env.RATE_LIMIT_OUTAGE_POLICY;
+    }
+  });
 });

@@ -7,8 +7,9 @@
     "dev": "tsx watch src/main.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
-    "test": "NODE_ENV=test tsx --test src/**/*.test.ts",
-    "test:coverage": "NODE_ENV=test c8 --reporter=text --reporter=lcov --check-coverage --lines 80 --functions 80 --branches 75 --exclude='src/**/*.test.ts' tsx --test src/**/*.test.ts",
+    "test": "NODE_ENV=test tsx --test \"src/**/*.test.ts\"",
+    "hardening:check": "NODE_ENV=test tsx --test src/app.module.hardening.test.ts src/config/app.config.hardening.test.ts",
+    "test:coverage": "NODE_ENV=test c8 --reporter=text --reporter=lcov --check-coverage --lines 80 --functions 80 --branches 75 --exclude='src/**/*.test.ts' tsx --test \"src/**/*.test.ts\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
@@ -25,6 +26,7 @@
     "pipeline:ai": "pnpm extract:guides:ai && pnpm merge:ai"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.2",
     "@fastify/static": "^10.1.2",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",

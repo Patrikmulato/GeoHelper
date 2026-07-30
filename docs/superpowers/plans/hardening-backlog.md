@@ -23,7 +23,7 @@ Branch context: hardening-stg
 
 ### Priorities (Current)
 
-- P0 (do next): S1, C2, D1
+- P0 (done): S1, C2, D1 — implemented on branch `hardening-p0-s1-c2-d1`
 - P1 (high): T2, X1, O1, C1
 - P2 (medium): P1, P2, P3, A3
 - P3 (lower / iterative): P4, A1, A2, A4

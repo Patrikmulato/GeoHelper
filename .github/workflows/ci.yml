@@ -62,6 +62,9 @@ jobs:
       - name: Test backend
         run: pnpm --filter geoguessr-helper-backend test
 
+      - name: Hardening policy checks
+        run: pnpm --filter geoguessr-helper-backend hardening:check
+
       - name: Test frontend
         run: pnpm test:coverage
 

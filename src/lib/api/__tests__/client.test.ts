@@ -172,7 +172,7 @@ describe('ApiClient auth + refresh-retry', () => {
     const refresher = jest.fn(async () => 'fresh');
     client.setTokenRefresher(refresher);
 
-    await expect(client.post('/api/auth/refresh', { refreshToken: 'x' })).rejects.toMatchObject({
+    await expect(client.post('/api/auth/refresh')).rejects.toMatchObject({
       status: 401,
     });
     expect(refresher).not.toHaveBeenCalled();

@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { LoggerService } from '../logger/logger.service.js';
+import { getAppConfig } from '../../config/app.config.js';
 
 type HitResult = {
   allowed: boolean;
@@ -21,20 +23,49 @@ function isProduction(): boolean {
 @Injectable()
 export class RateLimitStore {
   private readonly memoryBuckets = new Map<string, MemoryBucket>();
+  private readonly logger: LoggerService;
+
+  constructor(logger: LoggerService = new LoggerService()) {
+    this.logger = logger;
+  }
 
   async hit(key: string, maxRequests: number, windowMs: number): Promise<HitResult> {
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-    if (isProduction() && (!upstashUrl || !upstashToken)) {
-      throw new Error('Upstash Redis store is required in production for shared rate limiting');
+    if (!upstashUrl || !upstashToken) {
+      if (this.shouldFailClosed()) {
+        throw new Error('Upstash Redis store is required in production for shared rate limiting');
+      }
+
+      this.logger.warn('RateLimitStore', 'Using in-memory fallback by policy', {
+        policy: getAppConfig().rateLimitOutagePolicy,
+      });
+      return this.hitInMemory(key, maxRequests, windowMs);
     }
 
-    if (upstashUrl && upstashToken) {
-      return this.hitUpstash(key, maxRequests, windowMs, upstashUrl, upstashToken);
+    try {
+      return await this.hitUpstash(key, maxRequests, windowMs, upstashUrl, upstashToken);
+    } catch (error: unknown) {
+      if (this.shouldFailClosed()) {
+        throw error;
+      }
+
+      const message = error instanceof Error ? error.message : 'Unknown Upstash error';
+      this.logger.warn('RateLimitStore', 'Upstash hit failed, using in-memory fallback by policy', {
+        key,
+        error: message,
+      });
+      return this.hitInMemory(key, maxRequests, windowMs);
+    }
+  }
+
+  private shouldFailClosed(): boolean {
+    if (isProduction()) {
+      return true;
     }
 
-    return this.hitInMemory(key, maxRequests, windowMs);
+    return getAppConfig().rateLimitOutagePolicy === 'fail-closed';
   }
 
   private hitInMemory(key: string, maxRequests: number, windowMs: number): HitResult {

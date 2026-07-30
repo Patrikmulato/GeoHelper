@@ -57,6 +57,7 @@ export class ApiClient {
 
     const res = await fetch(url, {
       method,
+      credentials: 'include',
       headers: {
         ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),

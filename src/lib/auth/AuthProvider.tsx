@@ -13,8 +13,6 @@ import { apiClient } from '@/lib/api/client';
 import * as authApi from '@/lib/api/auth';
 import type { AuthResponse, AuthUser, UserRole } from '@/types/auth';
 
-const REFRESH_TOKEN_STORAGE_KEY = 'gh_refresh_token';
-
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
 type AuthContextValue = {
@@ -28,24 +26,6 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readStoredRefreshToken(): string | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  return window.localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
-}
-
-function persistRefreshToken(token: string | null): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  if (token) {
-    window.localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token);
-  } else {
-    window.localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const accessTokenRef = useRef<string | null>(null);
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
@@ -57,7 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const applySession = useCallback((session: AuthResponse) => {
     accessTokenRef.current = session.accessToken;
-    persistRefreshToken(session.refreshToken);
     setUser(session.user);
     setStatus('authenticated');
   }, []);
@@ -65,7 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearSession = useCallback(() => {
     sessionEpochRef.current += 1;
     accessTokenRef.current = null;
-    persistRefreshToken(null);
     setUser(null);
     setStatus('unauthenticated');
   }, []);
@@ -75,7 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // (still needed to authorize the logout request itself).
   const invalidatePendingRefresh = useCallback(() => {
     sessionEpochRef.current += 1;
-    persistRefreshToken(null);
   }, []);
 
   // Single-flight refresh: concurrent 401s (and Strict Mode double-invokes) share
@@ -88,13 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const epochAtStart = sessionEpochRef.current;
 
     const promise = (async () => {
-      const storedRefreshToken = readStoredRefreshToken();
-      if (!storedRefreshToken) {
-        clearSession();
-        return null;
-      }
       try {
-        const session = await authApi.refresh(storedRefreshToken);
+        const session = await authApi.refresh();
         // A logout may have completed while this request was in flight; discard
         // the result instead of resurrecting a session the user already left.
         if (sessionEpochRef.current !== epochAtStart) {
@@ -127,15 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refreshSession]);
 
-  // Bootstrap the session on first load from the stored refresh token.
+  // Bootstrap the session on first load by attempting cookie-based refresh.
   useEffect(() => {
     async function bootstrap() {
-      const storedRefreshToken = readStoredRefreshToken();
-      if (!storedRefreshToken) {
-        setStatus('unauthenticated');
-        return;
-      }
-
       await refreshSession();
     }
 

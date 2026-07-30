@@ -9,8 +9,8 @@ export function login(credentials: AuthCredentials) {
   return apiClient.post<AuthResponse>('/api/auth/login', credentials);
 }
 
-export function refresh(refreshToken: string) {
-  return apiClient.post<AuthResponse>('/api/auth/refresh', { refreshToken });
+export function refresh() {
+  return apiClient.post<AuthResponse>('/api/auth/refresh');
 }
 
 export function getMe() {
