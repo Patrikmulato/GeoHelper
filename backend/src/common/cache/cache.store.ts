@@ -9,6 +9,10 @@ type MemoryCacheEntry = {
 const MEMORY_CACHE_SOFT_LIMIT = 3000;
 const UPSTASH_REQUEST_TIMEOUT_MS = 2000;
 
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
 @Injectable()
 export class CacheStore {
   private readonly memory = new Map<string, MemoryCacheEntry>();
@@ -21,6 +25,12 @@ export class CacheStore {
   async get(key: string): Promise<string | undefined> {
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (!upstashUrl || !upstashToken) {
+      if (isProduction()) {
+        throw new Error('Upstash Redis store is required in production for shared cache');
+      }
+    }
 
     if (upstashUrl && upstashToken) {
       try {
@@ -36,6 +46,9 @@ export class CacheStore {
           key,
           error: message,
         });
+        if (isProduction()) {
+          throw new Error('Upstash Redis store is required in production for shared cache');
+        }
         // Fall back to memory when Upstash is unavailable.
       }
     }
@@ -57,6 +70,12 @@ export class CacheStore {
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+    if (!upstashUrl || !upstashToken) {
+      if (isProduction()) {
+        throw new Error('Upstash Redis store is required in production for shared cache');
+      }
+    }
+
     if (upstashUrl && upstashToken) {
       try {
         await this.upstashCommand<string>(
@@ -72,6 +91,9 @@ export class CacheStore {
           ttlSeconds,
           error: message,
         });
+        if (isProduction()) {
+          throw new Error('Upstash Redis store is required in production for shared cache');
+        }
         // Fall back to memory when Upstash is unavailable.
       }
     }
@@ -85,6 +107,12 @@ export class CacheStore {
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+    if (!upstashUrl || !upstashToken) {
+      if (isProduction()) {
+        throw new Error('Upstash Redis store is required in production for shared cache');
+      }
+    }
+
     if (upstashUrl && upstashToken) {
       try {
         return await this.upstashCommand<number>(
@@ -97,6 +125,9 @@ export class CacheStore {
           key,
           error: message,
         });
+        if (isProduction()) {
+          throw new Error('Upstash Redis store is required in production for shared cache');
+        }
         // Fall back to memory when Upstash is unavailable.
       }
     }

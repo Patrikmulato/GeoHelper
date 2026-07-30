@@ -4,10 +4,12 @@ import { CacheStore } from './cache.store.js';
 
 const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
 const originalToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const originalNodeEnv = process.env.NODE_ENV;
 
 afterEach(() => {
   process.env.UPSTASH_REDIS_REST_URL = originalUrl;
   process.env.UPSTASH_REDIS_REST_TOKEN = originalToken;
+  process.env.NODE_ENV = originalNodeEnv;
 });
 
 describe('CacheStore', () => {
@@ -136,5 +138,21 @@ describe('CacheStore', () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('throws when Upstash is not configured in production', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const store = new CacheStore();
+    await assert.rejects(
+      async () => {
+        await store.get('missing-upstash');
+      },
+      {
+        message: 'Upstash Redis store is required in production for shared cache',
+      }
+    );
   });
 });

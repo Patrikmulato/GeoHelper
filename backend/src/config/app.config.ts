@@ -33,6 +33,8 @@ export function getAppConfig(): AppConfig {
     requireProductionEnvVar('DATABASE_URL');
     requireProductionEnvVar('JWT_SECRET');
     requireProductionEnvVar('JWT_REFRESH_SECRET');
+    requireProductionEnvVar('UPSTASH_REDIS_REST_URL');
+    requireProductionEnvVar('UPSTASH_REDIS_REST_TOKEN');
   }
 
   return {
