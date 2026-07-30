@@ -11,6 +11,22 @@ import { setupSwagger } from './swagger.config.js';
 // *.vercel.app origins, which would otherwise allow any attacker-deployed site.
 const VERCEL_PREVIEW_ORIGIN = /^https:\/\/geo-helpers-[a-z0-9-]+\.vercel\.app$/;
 
+// Pure CORS origin check (exported for tests). A missing origin (curl,
+// same-origin server calls, mobile apps) is permitted; otherwise the origin must
+// be explicitly allow-listed or match this project's Vercel preview pattern.
+export function isOriginAllowed(
+  origin: string | undefined,
+  allowedOrigins: readonly string[]
+): boolean {
+  if (!origin) {
+    return true;
+  }
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+  return VERCEL_PREVIEW_ORIGIN.test(origin);
+}
+
 type SetupOptions = {
   withGlobalPrefix?: boolean;
 };
@@ -34,20 +50,7 @@ export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void
     ) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-
-      // Check if origin is in allowlist
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      // Allow only this project's Vercel preview deployments, not any *.vercel.app.
-      if (VERCEL_PREVIEW_ORIGIN.test(origin)) {
+      if (isOriginAllowed(origin, allowedOrigins)) {
         callback(null, true);
         return;
       }
