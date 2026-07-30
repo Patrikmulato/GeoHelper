@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import { AuthProvider } from '@/lib/auth/AuthProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -33,8 +34,10 @@ export default function RootLayout({
         className="h-screen flex flex-col overflow-hidden bg-[#181c22] text-white"
         suppressHydrationWarning
       >
-        <Navbar />
-        {children}
+        <AuthProvider>
+          <Navbar />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

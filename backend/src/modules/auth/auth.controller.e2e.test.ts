@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
+import { ValidationPipe } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { UserRole } from '../../../generated/prisma/index.js';
@@ -103,6 +104,13 @@ describe('AuthController (e2e)', () => {
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     app.setGlobalPrefix('api');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      })
+    );
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -130,6 +138,8 @@ describe('AuthController (e2e)', () => {
     assert.equal(typeof registerBody.refreshToken, 'string');
     assert.equal(registerBody.user.email, email);
     assert.equal(registerBody.user.role, 'USER');
+    assert.equal('password' in registerBody, false);
+    assert.equal('passwordHash' in registerBody.user, false);
 
     const loginRes = await app.inject({
       method: 'POST',
@@ -255,11 +265,26 @@ describe('AuthController (e2e)', () => {
       method: 'POST',
       url: '/api/auth/refresh',
       payload: {
-        refreshToken: 'not-a-valid-token',
+        // Long enough to pass RefreshTokenDto's length validation, but not a
+        // real/known token, so this exercises the auth service's rejection
+        // path rather than DTO validation.
+        refreshToken: 'not-a-valid-refresh-token-value',
       },
     });
 
     assert.equal(badRefreshRes.statusCode, 401, badRefreshRes.body);
+  });
+
+  it('refresh returns 400 for a too-short refresh token', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/refresh',
+      payload: {
+        refreshToken: 'too-short',
+      },
+    });
+
+    assert.equal(res.statusCode, 400, res.body);
   });
 
   it('GET /api/auth/me returns 401 when access token is invalid', async () => {
@@ -281,5 +306,57 @@ describe('AuthController (e2e)', () => {
     });
 
     assert.equal(meRes.statusCode, 401, meRes.body);
+  });
+
+  it('register returns 400 for a malformed email', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: {
+        email: 'not-an-email',
+        password: 'a-valid-password',
+      },
+    });
+
+    assert.equal(res.statusCode, 400, res.body);
+  });
+
+  it('register returns 400 for a too-short password', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: {
+        email: uniqueEmail('short-password'),
+        password: 'short',
+      },
+    });
+
+    assert.equal(res.statusCode, 400, res.body);
+  });
+
+  it('register returns 400 for unknown properties', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: {
+        email: uniqueEmail('unknown-field'),
+        password: 'a-valid-password',
+        role: 'ADMIN',
+      },
+    });
+
+    assert.equal(res.statusCode, 400, res.body);
+  });
+
+  it('login returns 400 for a missing password', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: {
+        email: 'someone@example.com',
+      },
+    });
+
+    assert.equal(res.statusCode, 400, res.body);
   });
 });

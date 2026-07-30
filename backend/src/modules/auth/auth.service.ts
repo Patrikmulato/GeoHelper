@@ -2,6 +2,7 @@ import { ConflictException, Inject, Injectable, UnauthorizedException } from '@n
 import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '../../../generated/prisma/index.js';
 import { hashPassword, verifyPassword } from '../../common/utils/password-hash.js';
+import { getAppConfig } from '../../config/app.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ACCESS_TOKEN_EXPIRES_IN,
@@ -44,6 +45,12 @@ export class AuthService {
     this.jwtService = jwtService;
   }
 
+  private roleForEmail(email: string, currentRole: UserRole = UserRole.USER): UserRole {
+    return getAppConfig().adminEmails.has(email.trim().toLowerCase())
+      ? UserRole.ADMIN
+      : currentRole;
+  }
+
   async register(dto: RegisterDto): Promise<AuthResponseDto> {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) {
@@ -54,6 +61,7 @@ export class AuthService {
       data: {
         email: dto.email,
         passwordHash: await hashPassword(dto.password),
+        role: this.roleForEmail(dto.email),
       },
       select: {
         id: true,
@@ -85,7 +93,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.issueAndPersistTokens(user);
+    const role = this.roleForEmail(user.email, user.role);
+    if (role !== user.role) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { role },
+      });
+    }
+
+    return this.issueAndPersistTokens({ ...user, role });
   }
 
   async refresh(dto: RefreshTokenDto): Promise<AuthResponseDto> {

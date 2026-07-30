@@ -23,7 +23,7 @@ describe('AuthService', () => {
       user: {
         findUnique: async () => null,
         create: async (input: {
-          data: { email: string; passwordHash: string };
+          data: { email: string; passwordHash: string; role: UserRole };
           select: { id: true; email: true; role: true };
         }) => {
           capturedPasswordHash = input.data.passwordHash;
@@ -78,6 +78,105 @@ describe('AuthService', () => {
     assert.match(capturedPasswordHash, /^scrypt\$/);
     assert.ok(capturedRefreshTokenHash);
     assert.match(capturedRefreshTokenHash, /^scrypt\$/);
+  });
+
+  it('register grants admin only to an allowlisted email', async () => {
+    const originalAdminEmails = process.env.ADMIN_EMAILS;
+    process.env.ADMIN_EMAILS = 'admin@example.com, second-admin@example.com ';
+
+    try {
+      let capturedRole: UserRole | undefined;
+      const prismaMock = {
+        user: {
+          findUnique: async () => null,
+          create: async (input: {
+            data: { email: string; passwordHash: string; role: UserRole };
+            select: { id: true; email: true; role: true };
+          }) => {
+            capturedRole = input.data.role;
+            return { id: 'admin-1', email: input.data.email, role: input.data.role };
+          },
+          update: async () => ({ id: 'admin-1' }),
+        },
+      };
+      const jwtMock: JwtServiceLike = {
+        signAsync: async (payload, options) =>
+          options?.expiresIn === '7d' ? `refresh-${payload.sub}` : `access-${payload.sub}`,
+        verifyAsync: async () => {
+          throw new Error('verify should not be called');
+        },
+      };
+      const service = new AuthService(
+        prismaMock as unknown as PrismaService,
+        jwtMock as AuthService['jwtService']
+      );
+
+      const result = await service.register({
+        email: 'ADMIN@EXAMPLE.COM',
+        password: 'super-secret',
+      });
+
+      assert.equal(capturedRole, UserRole.ADMIN);
+      assert.equal(result.user.role, UserRole.ADMIN);
+    } finally {
+      if (originalAdminEmails === undefined) {
+        delete process.env.ADMIN_EMAILS;
+      } else {
+        process.env.ADMIN_EMAILS = originalAdminEmails;
+      }
+    }
+  });
+
+  it('promotes an existing allowlisted user on login', async () => {
+    const originalAdminEmails = process.env.ADMIN_EMAILS;
+    process.env.ADMIN_EMAILS = 'admin@example.com';
+
+    try {
+      const storedHash = await hashPassword('super-secret');
+      let promotedRole: UserRole | undefined;
+      const prismaMock = {
+        user: {
+          findUnique: async () => ({
+            id: 'existing-user',
+            email: 'admin@example.com',
+            role: UserRole.USER,
+            passwordHash: storedHash,
+          }),
+          create: async () => {
+            throw new Error('create should not be called');
+          },
+          update: async (input: {
+            where: { id: string };
+            data: { role?: UserRole; refreshTokenHash?: string | null };
+          }) => {
+            promotedRole ??= input.data.role;
+            return { id: input.where.id };
+          },
+        },
+      };
+      const jwtMock: JwtServiceLike = {
+        signAsync: async (payload, options) =>
+          options?.expiresIn === '7d' ? `refresh-${payload.sub}` : `access-${payload.sub}`,
+        verifyAsync: async () => {
+          throw new Error('verify should not be called');
+        },
+      };
+      const service = new AuthService(
+        prismaMock as unknown as PrismaService,
+        jwtMock as AuthService['jwtService']
+      );
+
+      const result = await service.login({ email: 'admin@example.com', password: 'super-secret' });
+
+      assert.equal(promotedRole, UserRole.ADMIN);
+      assert.equal(result.user.role, UserRole.ADMIN);
+    } finally {
+      if (originalAdminEmails === undefined) {
+        delete process.env.ADMIN_EMAILS;
+      } else {
+        process.env.ADMIN_EMAILS = originalAdminEmails;
+      }
+    }
   });
 
   it('register throws ConflictException for duplicate email', async () => {

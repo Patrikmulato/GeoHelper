@@ -23,6 +23,16 @@ function makeCacheStoreMock(overrides?: Partial<CacheStore>): CacheStore {
   } as unknown as CacheStore;
 }
 
+const FULL_FILTERS = {
+  sideFilter: 'left',
+  lineFilter: 'all',
+  euPlateFilter: 'no',
+  cameraGenFilter: 'all',
+  coverageYearFilter: 'all',
+  carColorFilter: 'all',
+  vehicleTypeFilter: 'all',
+} as const;
+
 describe('SavedFiltersService', () => {
   it('createSavedFilter defaults isPublic to false', async () => {
     const createdAt = makeDate('2026-01-01T00:00:00.000Z');
@@ -71,7 +81,7 @@ describe('SavedFiltersService', () => {
 
     const result = await service.createSavedFilter('user-1', {
       name: 'Starter',
-      filters: { sideFilter: 'left' },
+      filters: { ...FULL_FILTERS },
     });
 
     assert.equal(capturedIsPublic, false);
@@ -334,10 +344,55 @@ describe('SavedFiltersService', () => {
 
     await service.createSavedFilter('user-1', {
       name: 'Invalidate Cache',
-      filters: { sideFilter: 'left' },
+      filters: { ...FULL_FILTERS },
       isPublic: true,
     });
 
     assert.equal(incrementCalled, true);
+  });
+
+  it('listOwnSavedFilters always scopes to the requesting user', async () => {
+    let capturedWhere: { userId?: string } | undefined;
+
+    const prismaMock = {
+      savedFilter: {
+        create: async () => {
+          throw new Error('create should not be called');
+        },
+        findMany: async (input: { where?: { userId?: string } }) => {
+          capturedWhere = input.where;
+          return [
+            {
+              id: 'sf-own',
+              userId: 'user-1',
+              name: 'Mine',
+              description: null,
+              filters: { ...FULL_FILTERS },
+              isPublic: false,
+              views: 0,
+              createdAt: makeDate('2026-01-01T00:00:00.000Z'),
+              updatedAt: makeDate('2026-01-01T00:00:00.000Z'),
+            },
+          ];
+        },
+        count: async () => 0,
+        findUnique: async () => null,
+        update: async () => {
+          throw new Error('update should not be called');
+        },
+        delete: async () => {
+          throw new Error('delete should not be called');
+        },
+      },
+    };
+
+    const cacheStoreMock = makeCacheStoreMock();
+    const service = new SavedFiltersService(prismaMock as unknown as PrismaService, cacheStoreMock);
+
+    const result = await service.listOwnSavedFilters('user-1');
+
+    assert.deepEqual(capturedWhere, { userId: 'user-1' });
+    assert.equal(result.length, 1);
+    assert.equal(result[0].id, 'sf-own');
   });
 });

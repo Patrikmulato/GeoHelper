@@ -1,9 +1,11 @@
+import { FilterRequestDto } from '../../data/dto/filter-request.dto.js';
+
 export class SavedFilterDto {
   id!: string;
   userId!: string;
   name!: string;
   description?: string;
-  filters!: Record<string, unknown>;
+  filters!: FilterRequestDto;
   isPublic!: boolean;
   views!: number;
   createdAt!: Date;

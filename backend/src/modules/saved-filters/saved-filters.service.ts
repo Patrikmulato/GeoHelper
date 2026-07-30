@@ -3,6 +3,7 @@ import { Prisma, UserRole } from '../../../generated/prisma/index.js';
 import { CacheStore } from '../../common/cache/cache.store.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { parsePagination } from '../../common/utils/pagination.js';
+import { FilterRequestDto } from '../data/dto/filter-request.dto.js';
 import { CreateSavedFilterDto } from './dto/create-saved-filter.dto.js';
 import { PaginatedSavedFiltersDto, SavedFilterDto } from './dto/saved-filter.dto.js';
 import { UpdateSavedFilterDto } from './dto/update-saved-filter.dto.js';
@@ -55,7 +56,7 @@ export class SavedFiltersService {
       userId: savedFilter.userId,
       name: savedFilter.name,
       description: savedFilter.description ?? undefined,
-      filters: savedFilter.filters as Record<string, unknown>,
+      filters: savedFilter.filters as FilterRequestDto,
       isPublic: savedFilter.isPublic,
       views: savedFilter.views,
       createdAt: savedFilter.createdAt,
@@ -104,7 +105,7 @@ export class SavedFiltersService {
         userId,
         name: dto.name,
         description: dto.description,
-        filters: dto.filters as Prisma.InputJsonValue,
+        filters: dto.filters as unknown as Prisma.InputJsonValue,
         isPublic: dto.isPublic ?? false,
       },
     });
@@ -120,6 +121,15 @@ export class SavedFiltersService {
   ): Promise<SavedFilterDto[]> {
     const savedFilters = await this.prisma.savedFilter.findMany({
       where: this.isAdmin(requesterRole) ? undefined : { userId: requesterUserId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return savedFilters.map((savedFilter) => this.toDto(savedFilter));
+  }
+
+  async listOwnSavedFilters(userId: string): Promise<SavedFilterDto[]> {
+    const savedFilters = await this.prisma.savedFilter.findMany({
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -199,7 +209,7 @@ export class SavedFiltersService {
       data: {
         name: dto.name,
         description: dto.description,
-        filters: dto.filters as Prisma.InputJsonValue | undefined,
+        filters: dto.filters as unknown as Prisma.InputJsonValue | undefined,
         isPublic: dto.isPublic,
       },
     });

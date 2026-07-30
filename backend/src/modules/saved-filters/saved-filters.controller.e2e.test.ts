@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
+import { ValidationPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -194,6 +195,13 @@ describe('SavedFiltersController authorization (e2e)', () => {
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     app.setGlobalPrefix('api');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      })
+    );
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
 
@@ -232,6 +240,37 @@ describe('SavedFiltersController authorization (e2e)', () => {
     assert.equal(response.statusCode, 401, response.body);
   });
 
+  it('POST /api/saved-filters returns 400 when filters is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/saved-filters',
+      headers: {
+        authorization: `Bearer ${ownerAccessToken}`,
+      },
+      payload: {
+        name: 'Missing Filters',
+      },
+    });
+
+    assert.equal(response.statusCode, 400, response.body);
+  });
+
+  it('POST /api/saved-filters returns 400 when filters is incomplete', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/saved-filters',
+      headers: {
+        authorization: `Bearer ${ownerAccessToken}`,
+      },
+      payload: {
+        name: 'Incomplete Filters',
+        filters: { sideFilter: 'left' },
+      },
+    });
+
+    assert.equal(response.statusCode, 400, response.body);
+  });
+
   it('POST /api/saved-filters creates a filter owned by the authenticated user', async () => {
     const response = await app.inject({
       method: 'POST',
@@ -241,7 +280,15 @@ describe('SavedFiltersController authorization (e2e)', () => {
       },
       payload: {
         name: 'Owner Created',
-        filters: { sideFilter: 'left' },
+        filters: {
+          sideFilter: 'left',
+          lineFilter: 'all',
+          euPlateFilter: 'no',
+          cameraGenFilter: 'all',
+          coverageYearFilter: 'all',
+          carColorFilter: 'all',
+          vehicleTypeFilter: 'all',
+        },
         isPublic: false,
       },
     });

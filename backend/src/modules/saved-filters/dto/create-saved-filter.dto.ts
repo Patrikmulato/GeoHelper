@@ -1,4 +1,15 @@
-import { IsBoolean, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsDefined,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { FilterRequestDto } from '../../data/dto/filter-request.dto.js';
 
 export class CreateSavedFilterDto {
   @IsString()
@@ -11,8 +22,11 @@ export class CreateSavedFilterDto {
   @MaxLength(280)
   description?: string;
 
+  @IsDefined()
   @IsObject()
-  filters!: Record<string, unknown>;
+  @ValidateNested()
+  @Type(() => FilterRequestDto)
+  filters!: FilterRequestDto;
 
   @IsOptional()
   @IsBoolean()

@@ -1,4 +1,10 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserRole } from '../../../generated/prisma/index.js';
 import { hashPassword } from '../../common/utils/password-hash';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -85,5 +91,23 @@ export class UsersService {
     });
 
     return users.map((user) => this.toUserDto(user));
+  }
+
+  async deleteUserById(id: string, actorUserId: string): Promise<{ id: string; deleted: true }> {
+    if (id === actorUserId) {
+      throw new BadRequestException('You cannot delete your own account');
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.prisma.user.delete({ where: { id } });
+    return { id, deleted: true };
   }
 }

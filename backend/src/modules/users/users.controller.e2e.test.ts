@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
+import { ValidationPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -44,6 +45,14 @@ describe('UsersController RBAC (e2e)', () => {
         return mockUsers.find((user) => user.id === id || user.email === email) ?? null;
       },
       findMany: async () => mockUsers,
+      delete: async (input: { where: { id: string } }) => {
+        const index = mockUsers.findIndex((user) => user.id === input.where.id);
+        if (index < 0) {
+          throw new Error('delete target not found');
+        }
+        const [removed] = mockUsers.splice(index, 1);
+        return removed;
+      },
       create: async (input: {
         data: { email: string; role: UserRole };
         select: { id: true; email: true; role: true; createdAt: true; updatedAt: true };
@@ -67,6 +76,13 @@ describe('UsersController RBAC (e2e)', () => {
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     app.setGlobalPrefix('api');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      })
+    );
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
 
@@ -169,5 +185,79 @@ describe('UsersController RBAC (e2e)', () => {
     });
 
     assert.equal(response.statusCode, 401, response.body);
+  });
+
+  it('POST /api/users returns 400 for a malformed email', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/users',
+      headers: {
+        authorization: `Bearer ${adminAccessToken}`,
+      },
+      payload: {
+        email: 'not-an-email',
+        password: 'super-secret-123',
+      },
+    });
+
+    assert.equal(response.statusCode, 400, response.body);
+  });
+
+  it('POST /api/users returns 400 for an invalid role', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/users',
+      headers: {
+        authorization: `Bearer ${adminAccessToken}`,
+      },
+      payload: {
+        email: 'new-role-user@example.com',
+        password: 'super-secret-123',
+        role: 'SUPERUSER',
+      },
+    });
+
+    assert.equal(response.statusCode, 400, response.body);
+  });
+
+  it('DELETE /api/users/:id returns 403 for non-admin users', async () => {
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/api/users/admin-1',
+      headers: {
+        authorization: `Bearer ${userAccessToken}`,
+      },
+    });
+
+    assert.equal(response.statusCode, 403, response.body);
+  });
+
+  it('DELETE /api/users/:id returns 400 when admin attempts to delete self', async () => {
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/api/users/admin-1',
+      headers: {
+        authorization: `Bearer ${adminAccessToken}`,
+      },
+    });
+
+    assert.equal(response.statusCode, 400, response.body);
+  });
+
+  it('DELETE /api/users/:id returns 200 for admins deleting another user', async () => {
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/api/users/user-1',
+      headers: {
+        authorization: `Bearer ${adminAccessToken}`,
+      },
+    });
+
+    assert.equal(response.statusCode, 200, response.body);
+    const body = response.json();
+    assert.deepEqual(body, {
+      id: 'user-1',
+      deleted: true,
+    });
   });
 });
