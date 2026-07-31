@@ -1,10 +1,19 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import FilterDropdown from '@/components/FilterDropdown';
+import SavedFiltersPanel from '@/components/SavedFiltersPanel';
 import { fetchFilteredCountries, fetchGeoJson, fetchMapData } from '@/lib/api/map-data';
-import type { CarColor, MapDataResponse, RoadLinePattern, VehicleType } from '@/types/map-data';
+import { takePendingFilter } from '@/lib/saved-filters/pending-filter';
+import type {
+  CarColor,
+  FilterRequest,
+  MapDataResponse,
+  RoadLinePattern,
+  VehicleType,
+} from '@/types/map-data';
 
 const WorldMap = dynamic(() => import('@/components/WorldMap'), { ssr: false });
 
@@ -40,14 +49,29 @@ export default function Home() {
     async function loadInitialData() {
       setIsInitialLoading(true);
       setInitialError(null);
+      const mapRequest = fetchMapData();
+      const geoJsonRequest = fetchGeoJson();
+
       try {
-        const [geoJsonData, serverMapData] = await Promise.all([fetchGeoJson(), fetchMapData()]);
+        const serverMapData = await mapRequest;
+        if (!active) return;
+        setMapData(serverMapData);
+        // Render immediately with all GeoGuessr countries while filtered data loads.
+        setFilteredCountries(serverMapData.geoguessrCountries);
+      } catch (error) {
+        if (!active) return;
+        console.error('Map data load failed:', error);
+        setInitialError('Failed to load map data from backend API.');
+      }
+
+      try {
+        const geoJsonData = await geoJsonRequest;
         if (!active) return;
         setGeojson(geoJsonData);
-        setMapData(serverMapData);
-      } catch {
+      } catch (error) {
         if (!active) return;
-        setInitialError('Failed to load map data from backend API.');
+        console.error('GeoJSON load failed:', error);
+        setInitialError((prev) => prev ?? 'Failed to load country geometry from backend API.');
       } finally {
         if (!active) return;
         setIsInitialLoading(false);
@@ -221,6 +245,84 @@ export default function Home() {
     setVehicleTypeFilter('all');
   }, []);
 
+  const currentFilters = useMemo<FilterRequest>(
+    () => ({
+      sideFilter,
+      lineFilter,
+      euPlateFilter,
+      cameraGenFilter,
+      coverageYearFilter,
+      carColorFilter,
+      vehicleTypeFilter,
+    }),
+    [
+      sideFilter,
+      lineFilter,
+      euPlateFilter,
+      cameraGenFilter,
+      coverageYearFilter,
+      carColorFilter,
+      vehicleTypeFilter,
+    ]
+  );
+
+  const applyFilters = useCallback((filters: FilterRequest) => {
+    setSideFilter(filters.sideFilter);
+    setLineFilter(filters.lineFilter);
+    setEuPlateFilter(filters.euPlateFilter);
+    setCameraGenFilter(filters.cameraGenFilter);
+    setCoverageYearFilter(filters.coverageYearFilter);
+    setCarColorFilter(filters.carColorFilter);
+    setVehicleTypeFilter(filters.vehicleTypeFilter);
+  }, []);
+
+  // Clamp data-dependent fields to the currently valid values so a stale or
+  // tampered filter — whether from the public gallery or a user's own older
+  // preset — can't push the map into a dead-end state. Fixed-enum fields are
+  // already validated upstream.
+  const sanitizeFilters = useCallback(
+    (filters: FilterRequest): FilterRequest => ({
+      ...filters,
+      lineFilter:
+        filters.lineFilter === 'all' ||
+        allLinePatterns.includes(filters.lineFilter as RoadLinePattern)
+          ? filters.lineFilter
+          : 'all',
+      carColorFilter:
+        filters.carColorFilter === 'all' ||
+        allCarColors.includes(filters.carColorFilter as CarColor)
+          ? filters.carColorFilter
+          : 'all',
+      vehicleTypeFilter:
+        filters.vehicleTypeFilter === 'all' ||
+        allVehicleTypes.includes(filters.vehicleTypeFilter as VehicleType)
+          ? filters.vehicleTypeFilter
+          : 'all',
+      cameraGenFilter:
+        filters.cameraGenFilter === 'all' || allCameraGens.includes(filters.cameraGenFilter)
+          ? filters.cameraGenFilter
+          : 'all',
+    }),
+    [allLinePatterns, allCarColors, allVehicleTypes, allCameraGens]
+  );
+
+  const applySanitizedFilters = useCallback(
+    (filters: FilterRequest) => applyFilters(sanitizeFilters(filters)),
+    [applyFilters, sanitizeFilters]
+  );
+
+  // Apply a filter handed off from the public gallery, once mapData is available.
+  useEffect(() => {
+    if (!mapData) return;
+
+    const pending = takePendingFilter();
+    if (!pending) return;
+
+    // One-time sync of UI state from an external store (sessionStorage handoff).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    applySanitizedFilters(pending);
+  }, [mapData, applySanitizedFilters]);
+
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Persistent filter sidebar */}
@@ -365,6 +467,7 @@ export default function Home() {
         </div>
 
         <div className="border-t border-zinc-800 px-3 py-3">
+          <SavedFiltersPanel currentFilters={currentFilters} onApply={applySanitizedFilters} />
           <button
             type="button"
             onClick={resetFilters}
@@ -378,6 +481,15 @@ export default function Home() {
 
       {/* Map */}
       <main className="relative min-w-0 flex-1">
+        <div className="pointer-events-none absolute bottom-3 right-3 z-[500] sm:bottom-4 sm:right-4">
+          <Link
+            href="/filters"
+            className="pointer-events-auto inline-flex rounded-full border border-zinc-700 bg-[#20262e]/95 px-3 py-1.5 text-xs font-semibold text-zinc-100 shadow-lg transition-colors hover:border-zinc-500 hover:bg-[#27303b]"
+          >
+            Public Filters
+          </Link>
+        </div>
+
         {initialError ? (
           <div className="flex h-full items-center justify-center text-red-400">{initialError}</div>
         ) : geojson && mapData && filteredCountries ? (

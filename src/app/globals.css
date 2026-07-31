@@ -61,3 +61,16 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #52525b;
 }
+
+.leaflet-tooltip.us-state-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #94a3b8;
+  font-size: 8px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px #000;
+  pointer-events: none;
+  white-space: nowrap;
+  padding: 0;
+}

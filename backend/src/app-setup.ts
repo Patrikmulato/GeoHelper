@@ -1,26 +1,69 @@
 import { ValidationPipe } from '@nestjs/common';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
+import { ValidationExceptionFilter } from './common/filters/validation.exception.filter.js';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
+import { getAppConfig } from './config/app.config.js';
+import { setupSwagger } from './swagger.config.js';
 
-type AppWithConfig = {
-  enableCors: (options: { origin: string[] }) => void;
-  useGlobalPipes: (...pipes: ValidationPipe[]) => void;
-  setGlobalPrefix: (prefix: string) => void;
-};
+// Matches this project's Vercel preview deployments (e.g.
+// geo-helpers-git-branch-team.vercel.app) without trusting arbitrary
+// *.vercel.app origins, which would otherwise allow any attacker-deployed site.
+const VERCEL_PREVIEW_ORIGIN = /^https:\/\/geo-helpers-[a-z0-9-]+\.vercel\.app$/;
+
+// Pure CORS origin check (exported for tests). A missing origin (curl,
+// same-origin server calls, mobile apps) is permitted; otherwise the origin must
+// be explicitly allow-listed or match this project's Vercel preview pattern.
+export function isOriginAllowed(
+  origin: string | undefined,
+  allowedOrigins: readonly string[]
+): boolean {
+  if (!origin) {
+    return true;
+  }
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+  return VERCEL_PREVIEW_ORIGIN.test(origin);
+}
 
 type SetupOptions = {
   withGlobalPrefix?: boolean;
 };
 
-export function setupApp(app: AppWithConfig, options: SetupOptions = {}): void {
+export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}): void {
   const { withGlobalPrefix = true } = options;
+  const appConfig = getAppConfig();
+
+  // Build allowed origins - supports localhost, env vars, and Vercel preview deployments
   const allowedOrigins = [
     'http://localhost:3000',
-    process.env.CORS_ORIGIN,
-    process.env.FRONTEND_URL,
+    'http://localhost:3001',
+    'https://geo-helpers.vercel.app',
+    appConfig.corsOrigin,
+    appConfig.frontendUrl,
   ].filter((origin): origin is string => Boolean(origin));
 
-  app.enableCors({
-    origin: allowedOrigins,
-  });
+  // CORS configuration with dynamic Vercel preview support
+  const corsOptions = {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) => {
+      if (isOriginAllowed(origin, allowedOrigins)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  };
+
+  // Type assertion: Fastify CORS types are strict about origin function signature,
+  // but our implementation works correctly at runtime
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.enableCors(corsOptions as any);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -30,7 +73,16 @@ export function setupApp(app: AppWithConfig, options: SetupOptions = {}): void {
     })
   );
 
+  // Register global filters (exception handling)
+  app.useGlobalFilters(new ValidationExceptionFilter(), new HttpExceptionFilter());
+
+  // Register global interceptors (response standardization)
+  app.useGlobalInterceptors(new ResponseInterceptor());
+
   if (withGlobalPrefix) {
     app.setGlobalPrefix('api');
   }
+
+  // API docs at /api/docs (Swagger UI + OpenAPI JSON).
+  setupSwagger(app);
 }

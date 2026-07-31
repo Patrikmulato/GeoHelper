@@ -125,6 +125,45 @@ vercel dev
 - **Performance**: Vercel dashboard → Analytics
 - **Errors**: Vercel dashboard → Monitor
 
+## Vercel Serverless Hardening
+
+This project stays on Vercel for backend hosting.
+
+### Required backend secrets (Vercel)
+
+Set these in Project Settings → Environment Variables:
+
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `JWT_REFRESH_SECRET`
+
+Recommended:
+
+- Use a pooled PostgreSQL URL for serverless traffic patterns.
+- Keep preview and production env vars aligned.
+- To bootstrap selected administrators without exposing a public promotion endpoint,
+  set `ADMIN_EMAILS` to a comma-separated allowlist, for example
+  `admin@example.com,another-admin@example.com`. Matching users become `ADMIN`
+  when they register or next log in.
+
+### Optional Phase 9 prep (free external rate limiting store)
+
+For shared serverless rate limits, use a managed store instead of in-memory counters.
+
+Example free option:
+
+- Upstash Redis (free tier)
+
+If enabled later, add:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+Notes:
+
+- Serverless instances are stateless and can scale horizontally, so process memory should not be used as the primary global limiter store.
+- Keep `/api/health` available for runtime checks.
+
 ## Rolling Back
 
 To revert to a previous deployment:

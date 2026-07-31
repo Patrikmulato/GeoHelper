@@ -21,6 +21,7 @@
 # production
 /build
 backend/dist
+backend/generated
 
 # misc
 .DS_Store
@@ -43,7 +44,13 @@ yarn-error.log*
 next-env.d.ts
 
 # crawler output – never commit scraped data
-backend/crawlers/
+backend/crawlers/data
+backend/crawlers/plonk
 
 # codemie
 .codemie/
+
+# claude code scratch dirs
+.superpowers/
+.playwright-mcp/
+.prisma/

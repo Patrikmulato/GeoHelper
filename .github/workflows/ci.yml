@@ -24,13 +24,13 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -46,6 +46,12 @@ jobs:
 
       - name: Type check frontend
         run: pnpm typecheck
+
+      - name: Generate Prisma client (backend)
+        run: pnpm --filter geoguessr-helper-backend prisma:generate
+
+      - name: Validate Prisma schema (backend)
+        run: pnpm --filter geoguessr-helper-backend exec prisma validate
 
       - name: Type check backend
         run: pnpm --filter geoguessr-helper-backend exec tsc --noEmit
@@ -63,7 +69,7 @@ jobs:
         run: pnpm build
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage/lcov.info
@@ -82,7 +88,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v42

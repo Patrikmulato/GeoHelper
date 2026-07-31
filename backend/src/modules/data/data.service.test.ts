@@ -1,8 +1,20 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { DataService } from './data.service.js';
+import { DataService, escapeHtml } from './data.service.js';
+import { LoggerService } from '../../common/logger/logger.service.js';
 
-const service = new DataService();
+const service = new DataService(new LoggerService());
+
+describe('escapeHtml', () => {
+  it('escapes HTML-significant characters', () => {
+    assert.equal(escapeHtml('<img onerror="x">'), '&lt;img onerror=&quot;x&quot;&gt;');
+    assert.equal(escapeHtml("O'Brien & Co"), 'O&#39;Brien &amp; Co');
+  });
+
+  it('leaves safe strings unchanged', () => {
+    assert.equal(escapeHtml('France'), 'France');
+  });
+});
 
 describe('DataService.getFilteredCountries', () => {
   it('returns many countries for all filters', () => {

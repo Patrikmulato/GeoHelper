@@ -3,16 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.8.0",
+  "packageManager": "pnpm@11.17.0",
   "engines": {
     "node": ">=22.0.0"
   },
   "scripts": {
     "prepare": "husky",
-    "predev": "pnpm sync:data:pull",
     "dev": "next dev",
-    "dev:backend": "pnpm sync:data:pull && pnpm --filter geoguessr-helper-backend dev",
-    "dev:all": "pnpm sync:data:pull && concurrently --kill-others-on-fail -n frontend,backend -c cyan,yellow \"next dev\" \"pnpm --filter geoguessr-helper-backend dev\"",
+    "dev:backend": "pnpm --filter geoguessr-helper-backend dev",
+    "dev:all": "concurrently --kill-others-on-fail -n frontend,backend -c cyan,yellow \"next dev\" \"pnpm --filter geoguessr-helper-backend dev\"",
     "build": "next build",
     "build:backend": "pnpm sync:data:pull && pnpm --filter geoguessr-helper-backend build",
     "sync:data": "pnpm --filter geoguessr-helper-backend sync:data",
@@ -28,34 +27,34 @@
   },
   "dependencies": {
     "leaflet": "1.9.4",
-    "next": "16.2.9",
-    "react": "19.2.7",
-    "react-dom": "19.2.7",
+    "next": "16.2.12",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "react-leaflet": "5.0.0",
     "react-zoom-pan-pinch": "^4.0.3"
   },
   "devDependencies": {
-    "@commitlint/cli": "21.0.2",
-    "@commitlint/config-conventional": "21.0.2",
-    "@tailwindcss/postcss": "4.3.1",
+    "@commitlint/cli": "21.2.1",
+    "@commitlint/config-conventional": "21.2.0",
+    "@tailwindcss/postcss": "4.3.3",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.1",
     "@types/jest": "30.0.0",
     "@types/leaflet": "1.9.21",
-    "@types/node": "25.9.4",
+    "@types/node": "25.9.5",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "codecov": "3.8.3",
     "concurrently": "^10.0.0",
-    "eslint": "9.39.4",
-    "eslint-config-next": "16.2.9",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.12",
     "husky": "9.1.7",
     "jest": "30.4.2",
     "jest-environment-jsdom": "30.4.1",
-    "lint-staged": "17.0.8",
-    "prettier": "3.8.4",
-    "tailwindcss": "4.3.1",
+    "lint-staged": "17.2.0",
+    "prettier": "3.9.6",
+    "tailwindcss": "4.3.3",
     "typescript": "6.0.3"
   },
   "lint-staged": {
@@ -65,7 +64,7 @@
       "prettier --write"
     ],
     "src/**/*.{js,jsx,ts,tsx}": [
-      "jest --bail --findRelatedTests"
+      "jest --bail --findRelatedTests --passWithNoTests"
     ],
     "*.{json,css,md}": [
       "prettier --write"
