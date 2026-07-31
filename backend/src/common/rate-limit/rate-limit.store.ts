@@ -15,15 +15,14 @@ type MemoryBucket = {
 };
 
 const MEMORY_BUCKET_SOFT_LIMIT = 3000;
-
-function isProduction(): boolean {
-  return process.env.NODE_ENV === 'production';
-}
+const UPSTASH_REQUEST_TIMEOUT_MS = 2000;
 
 @Injectable()
 export class RateLimitStore {
   private readonly memoryBuckets = new Map<string, MemoryBucket>();
   private readonly logger: LoggerService;
+  private hasLoggedMissingStore = false;
+  private hasLoggedStoreFailure = false;
 
   constructor(logger: LoggerService = new LoggerService()) {
     this.logger = logger;
@@ -35,12 +34,10 @@ export class RateLimitStore {
 
     if (!upstashUrl || !upstashToken) {
       if (this.shouldFailClosed()) {
-        throw new Error('Upstash Redis store is required in production for shared rate limiting');
+        throw new Error('Upstash Redis store is required by the fail-closed rate-limit policy');
       }
 
-      this.logger.warn('RateLimitStore', 'Using in-memory fallback by policy', {
-        policy: getAppConfig().rateLimitOutagePolicy,
-      });
+      this.warnMissingStoreOnce();
       return this.hitInMemory(key, maxRequests, windowMs);
     }
 
@@ -52,19 +49,35 @@ export class RateLimitStore {
       }
 
       const message = error instanceof Error ? error.message : 'Unknown Upstash error';
-      this.logger.warn('RateLimitStore', 'Upstash hit failed, using in-memory fallback by policy', {
-        key,
-        error: message,
-      });
+      this.warnStoreFailureOnce(key, message);
       return this.hitInMemory(key, maxRequests, windowMs);
     }
   }
 
-  private shouldFailClosed(): boolean {
-    if (isProduction()) {
-      return true;
+  private warnMissingStoreOnce(): void {
+    if (this.hasLoggedMissingStore) {
+      return;
     }
 
+    this.hasLoggedMissingStore = true;
+    this.logger.warn('RateLimitStore', 'Using in-memory fallback by policy', {
+      policy: getAppConfig().rateLimitOutagePolicy,
+    });
+  }
+
+  private warnStoreFailureOnce(key: string, error: string): void {
+    if (this.hasLoggedStoreFailure) {
+      return;
+    }
+
+    this.hasLoggedStoreFailure = true;
+    this.logger.warn('RateLimitStore', 'Upstash hit failed, using in-memory fallback by policy', {
+      key,
+      error,
+    });
+  }
+
+  private shouldFailClosed(): boolean {
     return getAppConfig().rateLimitOutagePolicy === 'fail-closed';
   }
 
@@ -133,6 +146,7 @@ export class RateLimitStore {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      signal: AbortSignal.timeout(UPSTASH_REQUEST_TIMEOUT_MS),
     });
 
     if (!response.ok) {

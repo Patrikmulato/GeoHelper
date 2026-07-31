@@ -141,15 +141,37 @@ export class AuthService {
     return this.issueAndPersistTokens(user);
   }
 
-  async logout(userId: string): Promise<{ revoked: true }> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        refreshTokenHash: null,
-      },
+  async logoutByRefreshToken(refreshToken: string): Promise<void> {
+    let payload: RefreshTokenPayload;
+
+    try {
+      payload = await this.jwtService.verifyAsync<RefreshTokenPayload>(refreshToken, {
+        secret: resolveRefreshTokenSecret(),
+      });
+    } catch {
+      // An invalid or expired refresh token cannot be used anyway, so there is
+      // nothing to revoke server-side. The cookie has already been cleared.
+      return;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { refreshTokenHash: true },
     });
 
-    return { revoked: true };
+    if (!user?.refreshTokenHash) {
+      return;
+    }
+
+    const matchesCurrentSession = await verifyPassword(refreshToken, user.refreshTokenHash);
+    if (!matchesCurrentSession) {
+      return;
+    }
+
+    await this.prisma.user.update({
+      where: { id: payload.sub },
+      data: { refreshTokenHash: null },
+    });
   }
 
   private toAuthUser(user: AuthUserWithSecrets): AuthUser {

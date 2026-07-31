@@ -215,13 +215,19 @@ describe('AuthController (e2e)', () => {
       url: '/api/auth/logout',
       headers: {
         origin: 'http://localhost:3000',
-        authorization: `Bearer ${refreshBody.accessToken}`,
+        cookie: rotatedRefreshCookie,
       },
     });
 
     assert.equal(logoutRes.statusCode, 201, logoutRes.body);
     const logoutBody = logoutRes.json();
     assert.equal(logoutBody.revoked, true);
+    const clearedCookieHeader = Array.isArray(logoutRes.headers['set-cookie'])
+      ? logoutRes.headers['set-cookie'].join('; ')
+      : (logoutRes.headers['set-cookie'] ?? '');
+    assert.match(clearedCookieHeader, /refresh_token=;/);
+    assert.match(clearedCookieHeader, /Path=\/api\/auth/);
+    assert.match(clearedCookieHeader, /Expires=Thu, 01 Jan 1970 00:00:00 GMT/);
 
     const refreshAfterLogoutRes = await app.inject({
       method: 'POST',
@@ -233,6 +239,38 @@ describe('AuthController (e2e)', () => {
     });
 
     assert.equal(refreshAfterLogoutRes.statusCode, 401, refreshAfterLogoutRes.body);
+  });
+
+  it('logout without an access token still revokes the refresh session', async () => {
+    const email = uniqueEmail('logout-no-access');
+    const password = 'super-secret-123';
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: { email, password },
+    });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email, password },
+    });
+    const cookie = extractRefreshCookie(login.headers['set-cookie']);
+
+    // No Authorization header: logout must not depend on a valid access token.
+    const logoutRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: { origin: 'http://localhost:3000', cookie },
+    });
+    assert.equal(logoutRes.statusCode, 201, logoutRes.body);
+
+    const refreshAfterLogout = await app.inject({
+      method: 'POST',
+      url: '/api/auth/refresh',
+      headers: { origin: 'http://localhost:3000', cookie },
+    });
+    assert.equal(refreshAfterLogout.statusCode, 401, refreshAfterLogout.body);
   });
 
   it('register returns 409 for duplicate email', async () => {

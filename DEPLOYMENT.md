@@ -146,22 +146,35 @@ Recommended:
   `admin@example.com,another-admin@example.com`. Matching users become `ADMIN`
   when they register or next log in.
 
-### Optional Phase 9 prep (free external rate limiting store)
+### Optional shared store (Upstash Redis)
 
-For shared serverless rate limits, use a managed store instead of in-memory counters.
+Upstash is **optional in production**. When it is not configured, the shared
+cache and rate limiter fall back to per-instance memory according to the outage
+policy (fail-open by default).
 
 Example free option:
 
 - Upstash Redis (free tier)
 
-If enabled later, add:
+To enable a shared store across serverless instances, add:
 
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
 
+Outage policy (optional):
+
+- `CACHE_OUTAGE_POLICY` — `fail-open` (default) or `fail-closed`
+- `RATE_LIMIT_OUTAGE_POLICY` — `fail-open` (default) or `fail-closed`
+
 Notes:
 
-- Serverless instances are stateless and can scale horizontally, so process memory should not be used as the primary global limiter store.
+- With `fail-open`, requests continue using per-instance memory when Upstash is
+  missing or unavailable. This is resilient but not shared across instances, so
+  limits/caches are enforced per-instance.
+- With `fail-closed`, the app requires a healthy Upstash connection and rejects
+  affected requests when it is missing or unavailable.
+- Serverless instances are stateless and can scale horizontally, so for strict
+  global rate limiting prefer a shared store with `fail-closed`.
 - Keep `/api/health` available for runtime checks.
 
 ## Rolling Back

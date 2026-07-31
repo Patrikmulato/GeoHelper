@@ -126,16 +126,24 @@ export class AuthController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
   @RateLimit(30, 60_000)
   @Post('logout')
   async logout(
     @Req() request: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-    @CurrentUser('sub') userId: string
+    @Res({ passthrough: true }) reply: FastifyReply
   ): Promise<{ revoked: true }> {
     this.assertAllowedOrigin(request);
+
+    // Logout must succeed even when the access token has expired, so it is not
+    // guarded by JwtAuthGuard. Identity for server-side revocation comes from the
+    // refresh cookie; the cookie is always cleared regardless of its validity.
+    const refreshToken = request.cookies[REFRESH_TOKEN_COOKIE_NAME];
     this.clearRefreshCookie(reply);
-    return this.authService.logout(userId);
+
+    if (refreshToken && typeof refreshToken === 'string') {
+      await this.authService.logoutByRefreshToken(refreshToken);
+    }
+
+    return { revoked: true };
   }
 }

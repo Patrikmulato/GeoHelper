@@ -370,12 +370,14 @@ describe('AuthService', () => {
     assert.match(capturedRefreshTokenHash, /^scrypt\$/);
   });
 
-  it('logout clears stored refresh token hash', async () => {
+  it('logoutByRefreshToken clears the hash when the token matches the current session', async () => {
+    const refreshToken = 'current-refresh-token';
+    const storedRefreshHash = await hashPassword(refreshToken);
     let capturedRefreshTokenHash: string | null | undefined;
 
     const prismaMock = {
       user: {
-        findUnique: async () => null,
+        findUnique: async () => ({ refreshTokenHash: storedRefreshHash }),
         create: async () => {
           throw new Error('create should not be called');
         },
@@ -393,9 +395,7 @@ describe('AuthService', () => {
 
     const jwtMock: JwtServiceLike = {
       signAsync: async () => 'unused',
-      verifyAsync: async () => {
-        throw new Error('verify should not be called');
-      },
+      verifyAsync: async <T>() => ({ sub: 'user-9' }) as T,
     };
 
     const service = new AuthService(
@@ -403,9 +403,58 @@ describe('AuthService', () => {
       jwtMock as AuthService['jwtService']
     );
 
-    const result = await service.logout('user-9');
+    await service.logoutByRefreshToken(refreshToken);
 
-    assert.equal(result.revoked, true);
     assert.equal(capturedRefreshTokenHash, null);
+  });
+
+  it('logoutByRefreshToken does not revoke the current session for a rotated token', async () => {
+    const storedRefreshHash = await hashPassword('current-refresh-token');
+    let updateCalled = false;
+
+    const prismaMock = {
+      user: {
+        findUnique: async () => ({ refreshTokenHash: storedRefreshHash }),
+        update: async () => {
+          updateCalled = true;
+        },
+      },
+    };
+    const jwtMock: JwtServiceLike = {
+      signAsync: async () => 'unused',
+      verifyAsync: async <T>() => ({ sub: 'user-9' }) as T,
+    };
+    const service = new AuthService(
+      prismaMock as unknown as PrismaService,
+      jwtMock as AuthService['jwtService']
+    );
+
+    await service.logoutByRefreshToken('rotated-refresh-token');
+
+    assert.equal(updateCalled, false);
+  });
+
+  it('logoutByRefreshToken propagates database revocation failures', async () => {
+    const refreshToken = 'current-refresh-token';
+    const storedRefreshHash = await hashPassword(refreshToken);
+
+    const prismaMock = {
+      user: {
+        findUnique: async () => ({ refreshTokenHash: storedRefreshHash }),
+        update: async () => {
+          throw new Error('database unavailable');
+        },
+      },
+    };
+    const jwtMock: JwtServiceLike = {
+      signAsync: async () => 'unused',
+      verifyAsync: async <T>() => ({ sub: 'user-9' }) as T,
+    };
+    const service = new AuthService(
+      prismaMock as unknown as PrismaService,
+      jwtMock as AuthService['jwtService']
+    );
+
+    await assert.rejects(() => service.logoutByRefreshToken(refreshToken), /database unavailable/);
   });
 });

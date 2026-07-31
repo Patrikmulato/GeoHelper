@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe('AppConfig hardening policy', () => {
-  it('requires Upstash env vars in production', () => {
+  it('allows missing Upstash env vars in production (optional shared store)', () => {
     process.env.NODE_ENV = 'production';
     process.env.DATABASE_URL = 'postgresql://example';
     process.env.JWT_SECRET = 'jwt-secret';
@@ -33,7 +33,11 @@ describe('AppConfig hardening policy', () => {
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
-    assert.throws(() => getAppConfig(), /UPSTASH_REDIS_REST_URL is required in production/);
+    const config = getAppConfig();
+
+    assert.equal(config.nodeEnv, 'production');
+    assert.equal(config.cacheOutagePolicy, 'fail-open');
+    assert.equal(config.rateLimitOutagePolicy, 'fail-open');
   });
 
   it('parses outage policies from env', () => {

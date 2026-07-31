@@ -49,8 +49,9 @@ export function getAppConfig(): AppConfig {
     requireProductionEnvVar('DATABASE_URL');
     requireProductionEnvVar('JWT_SECRET');
     requireProductionEnvVar('JWT_REFRESH_SECRET');
-    requireProductionEnvVar('UPSTASH_REDIS_REST_URL');
-    requireProductionEnvVar('UPSTASH_REDIS_REST_TOKEN');
+    // Upstash is optional in production: when it is not configured, the shared
+    // stores fall back to per-instance memory according to the outage policy
+    // (fail-open by default). Set *_OUTAGE_POLICY=fail-closed to require it.
   }
 
   return {
