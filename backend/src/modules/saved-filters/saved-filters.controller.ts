@@ -19,7 +19,6 @@ import { PaginatedSavedFiltersDto, SavedFilterDto } from './dto/saved-filter.dto
 import { UpdateSavedFilterDto } from './dto/update-saved-filter.dto.js';
 import { SavedFiltersService } from './saved-filters.service.js';
 import { RateLimit } from '../../common/rate-limit/rate-limit.decorator.js';
-import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard.js';
 
 @Controller('saved-filters')
 export class SavedFiltersController {
@@ -65,7 +64,6 @@ export class SavedFiltersController {
   }
 
   @Get('public')
-  @UseGuards(RateLimitGuard)
   @RateLimit(60, 60_000)
   async listPublicSavedFilters(
     @Query('page') page?: string,

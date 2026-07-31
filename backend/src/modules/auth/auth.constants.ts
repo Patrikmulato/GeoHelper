@@ -10,7 +10,7 @@ export function resolveAccessTokenSecret(): string {
     return 'test-jwt-secret';
   }
 
-  return 'dev-jwt-secret-change-me';
+  return resolveInsecureDevSecret('JWT_SECRET', 'dev-jwt-secret-change-me');
 }
 
 export function resolveRefreshTokenSecret(): string {
@@ -22,5 +22,22 @@ export function resolveRefreshTokenSecret(): string {
     return 'test-jwt-refresh-secret';
   }
 
-  return 'dev-jwt-refresh-secret-change-me';
+  return resolveInsecureDevSecret('JWT_REFRESH_SECRET', 'dev-jwt-refresh-secret-change-me');
+}
+
+// Only fall back to a well-known development secret in local development. Any
+// other environment (staging, preview, production, ...) must supply a real
+// secret; otherwise tokens could be forged with a publicly-known key.
+function resolveInsecureDevSecret(envVarName: string, fallback: string): string {
+  const nodeEnv = process.env.NODE_ENV ?? 'development';
+  if (nodeEnv !== 'development') {
+    throw new Error(
+      `${envVarName} must be set when NODE_ENV is "${nodeEnv}"; refusing to use the insecure development fallback.`
+    );
+  }
+
+  console.warn(
+    `[auth] ${envVarName} is not set — using an insecure development fallback. Do not use this outside local development.`
+  );
+  return fallback;
 }

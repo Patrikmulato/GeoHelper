@@ -14,6 +14,10 @@ type MemoryBucket = {
 
 const MEMORY_BUCKET_SOFT_LIMIT = 3000;
 
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
 @Injectable()
 export class RateLimitStore {
   private readonly memoryBuckets = new Map<string, MemoryBucket>();
@@ -21,6 +25,10 @@ export class RateLimitStore {
   async hit(key: string, maxRequests: number, windowMs: number): Promise<HitResult> {
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (isProduction() && (!upstashUrl || !upstashToken)) {
+      throw new Error('Upstash Redis store is required in production for shared rate limiting');
+    }
 
     if (upstashUrl && upstashToken) {
       return this.hitUpstash(key, maxRequests, windowMs, upstashUrl, upstashToken);

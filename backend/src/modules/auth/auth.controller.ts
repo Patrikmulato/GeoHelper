@@ -8,7 +8,6 @@ import { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { RateLimit } from '../../common/rate-limit/rate-limit.decorator.js';
-import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard.js';
 
 @Controller('auth')
 export class AuthController {
@@ -19,7 +18,6 @@ export class AuthController {
   }
 
   @Post('register')
-  @UseGuards(RateLimitGuard)
   @RateLimit(10, 60_000)
   async register(
     // The global ValidationPipe can't infer the @Body() metatype in this build
@@ -39,7 +37,6 @@ export class AuthController {
   }
 
   @Post('login')
-  @UseGuards(RateLimitGuard)
   @RateLimit(10, 60_000)
   async login(
     @Body(
@@ -56,7 +53,6 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @UseGuards(RateLimitGuard)
   @RateLimit(20, 60_000)
   async refresh(
     @Body(
@@ -82,7 +78,7 @@ export class AuthController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @UseGuards(JwtAuthGuard)
   @RateLimit(30, 60_000)
   @Post('logout')
   async logout(@CurrentUser('sub') userId: string): Promise<{ revoked: true }> {

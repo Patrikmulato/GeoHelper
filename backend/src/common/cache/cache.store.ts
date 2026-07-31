@@ -9,10 +9,13 @@ type MemoryCacheEntry = {
 const MEMORY_CACHE_SOFT_LIMIT = 3000;
 const UPSTASH_REQUEST_TIMEOUT_MS = 2000;
 
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
 @Injectable()
 export class CacheStore {
   private readonly memory = new Map<string, MemoryCacheEntry>();
-  private readonly memoryCounters = new Map<string, number>();
   private readonly logger: LoggerService;
 
   constructor(logger: LoggerService = new LoggerService()) {
@@ -22,6 +25,12 @@ export class CacheStore {
   async get(key: string): Promise<string | undefined> {
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (!upstashUrl || !upstashToken) {
+      if (isProduction()) {
+        throw new Error('Upstash Redis store is required in production for shared cache');
+      }
+    }
 
     if (upstashUrl && upstashToken) {
       try {
@@ -37,6 +46,9 @@ export class CacheStore {
           key,
           error: message,
         });
+        if (isProduction()) {
+          throw new Error('Upstash Redis store is required in production for shared cache');
+        }
         // Fall back to memory when Upstash is unavailable.
       }
     }
@@ -58,6 +70,12 @@ export class CacheStore {
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+    if (!upstashUrl || !upstashToken) {
+      if (isProduction()) {
+        throw new Error('Upstash Redis store is required in production for shared cache');
+      }
+    }
+
     if (upstashUrl && upstashToken) {
       try {
         await this.upstashCommand<string>(
@@ -73,6 +91,9 @@ export class CacheStore {
           ttlSeconds,
           error: message,
         });
+        if (isProduction()) {
+          throw new Error('Upstash Redis store is required in production for shared cache');
+        }
         // Fall back to memory when Upstash is unavailable.
       }
     }
@@ -86,6 +107,12 @@ export class CacheStore {
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+    if (!upstashUrl || !upstashToken) {
+      if (isProduction()) {
+        throw new Error('Upstash Redis store is required in production for shared cache');
+      }
+    }
+
     if (upstashUrl && upstashToken) {
       try {
         return await this.upstashCommand<number>(
@@ -98,12 +125,20 @@ export class CacheStore {
           key,
           error: message,
         });
+        if (isProduction()) {
+          throw new Error('Upstash Redis store is required in production for shared cache');
+        }
         // Fall back to memory when Upstash is unavailable.
       }
     }
 
-    const next = (this.memoryCounters.get(key) ?? 0) + 1;
-    this.memoryCounters.set(key, next);
+    // Keep the counter in the same `memory` map that get() reads, so version
+    // bumps are actually visible in the in-memory (no-Upstash) path. Counters
+    // must not expire, hence the far-future expiry.
+    const entry = this.memory.get(key);
+    const current = entry ? Number(entry.value) : 0;
+    const next = (Number.isFinite(current) ? current : 0) + 1;
+    this.memory.set(key, { value: String(next), expiresAtMs: Number.MAX_SAFE_INTEGER });
     return next;
   }
 
