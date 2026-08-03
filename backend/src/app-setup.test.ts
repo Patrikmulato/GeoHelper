@@ -23,6 +23,13 @@ describe('isOriginAllowed', () => {
       isOriginAllowed('https://geo-helpers-abc123-team.vercel.app', allowedOrigins),
       true
     );
+    assert.equal(
+      isOriginAllowed(
+        'https://geo-helper-map-and-metas-nwd8uzftt-patrikmulatos-projects.vercel.app',
+        allowedOrigins
+      ),
+      true
+    );
   });
 
   it('rejects arbitrary *.vercel.app origins', () => {
