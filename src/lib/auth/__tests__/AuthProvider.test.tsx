@@ -30,11 +30,12 @@ function makeSession(overrides?: Partial<AuthResponse>): AuthResponse {
 }
 
 function TestConsumer() {
-  const { status, user, logout } = useAuth();
+  const { status, user, logout, restoreSession } = useAuth();
   return (
     <div>
       <span data-testid="status">{status}</span>
       <span data-testid="user">{user?.email ?? ''}</span>
+      <button onClick={() => void restoreSession()}>restore</button>
       <button onClick={() => void logout()}>logout</button>
     </div>
   );
@@ -50,16 +51,23 @@ describe('AuthProvider', () => {
     jest.clearAllMocks();
   });
 
-  it('single-flights concurrent refresh calls into one network request', async () => {
-    (authApi.refresh as jest.Mock).mockRejectedValueOnce(new Error('bootstrap fail'));
-
+  it('does not refresh on mount for signed-out users', async () => {
     render(
       <AuthProvider>
         <TestConsumer />
       </AuthProvider>
     );
 
-    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'));
+    expect(authApi.refresh).not.toHaveBeenCalled();
+    expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated');
+  });
+
+  it('single-flights concurrent refresh calls into one network request', async () => {
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>
+    );
 
     let resolveRefresh: (session: AuthResponse) => void = () => {};
     (authApi.refresh as jest.Mock).mockReturnValue(
@@ -82,7 +90,7 @@ describe('AuthProvider', () => {
       await Promise.all([p1, p2]);
     });
 
-    expect(authApi.refresh).toHaveBeenCalledTimes(2);
+    expect(authApi.refresh).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('status')).toHaveTextContent('authenticated');
     expect(screen.getByTestId('user')).toHaveTextContent('user@example.com');
   });
@@ -102,6 +110,7 @@ describe('AuthProvider', () => {
       </AuthProvider>
     );
 
+    await userEvent.click(screen.getByText('restore'));
     await waitFor(() => expect(authApi.refresh).toHaveBeenCalledTimes(1));
 
     await userEvent.click(screen.getByText('logout'));
@@ -135,6 +144,7 @@ describe('AuthProvider', () => {
       </AuthProvider>
     );
 
+    await userEvent.click(screen.getByText('restore'));
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'));
 
     await userEvent.click(screen.getByText('logout'));

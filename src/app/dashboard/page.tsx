@@ -8,11 +8,15 @@ import type { User } from '@/types/user';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { status, role, user: currentUser } = useAuth();
+  const { status, role, user: currentUser, restoreSession } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
 
   // Send unauthenticated visitors to the login route.
   useEffect(() => {

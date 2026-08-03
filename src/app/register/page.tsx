@@ -8,7 +8,11 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, status, role } = useAuth();
+  const { register, status, role, restoreSession } = useAuth();
+
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
 
   // Single role-aware redirect once authenticated (covers both fresh registrations
   // and already-authenticated visits) to avoid competing navigations.

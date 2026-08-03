@@ -19,6 +19,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   role: UserRole | null;
   status: AuthStatus;
+  restoreSession: () => Promise<boolean>;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
@@ -33,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // cannot resurrect the session after the user has signed out.
   const sessionEpochRef = useRef(0);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [status, setStatus] = useState<AuthStatus>('unauthenticated');
 
   const applySession = useCallback((session: AuthResponse) => {
     accessTokenRef.current = session.accessToken;
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const epochAtStart = sessionEpochRef.current;
+    setStatus('loading');
 
     const promise = (async () => {
       try {
@@ -88,6 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return promise;
   }, [applySession, clearSession]);
 
+  const restoreSession = useCallback(async (): Promise<boolean> => {
+    if (status === 'authenticated') {
+      return true;
+    }
+
+    const token = await refreshSession();
+    return token !== null;
+  }, [refreshSession, status]);
+
   // Register token hooks with the shared API client (access token + 401 refresh).
   useEffect(() => {
     apiClient.setAccessTokenProvider(() => accessTokenRef.current);
@@ -97,15 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       apiClient.setAccessTokenProvider(null);
       apiClient.setTokenRefresher(null);
     };
-  }, [refreshSession]);
-
-  // Bootstrap the session on first load by attempting cookie-based refresh.
-  useEffect(() => {
-    async function bootstrap() {
-      await refreshSession();
-    }
-
-    void bootstrap();
   }, [refreshSession]);
 
   const login = useCallback(
@@ -146,11 +148,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       role: user?.role ?? null,
       status,
+      restoreSession,
       login,
       register,
       logout,
     }),
-    [user, status, login, register, logout]
+    [user, status, restoreSession, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
