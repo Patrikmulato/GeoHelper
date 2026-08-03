@@ -43,6 +43,7 @@ export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}
     'http://localhost:3000',
     'http://localhost:3001',
     'https://geo-helpers.vercel.app',
+    'https://geo-helpers-backend.vercel.app',
     appConfig.corsOrigin,
     appConfig.frontendUrl,
   ].filter((origin): origin is string => Boolean(origin));
