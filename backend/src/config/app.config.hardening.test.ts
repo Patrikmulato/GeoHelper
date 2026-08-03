@@ -13,15 +13,24 @@ const ORIGINAL_ENV = {
   RATE_LIMIT_OUTAGE_POLICY: process.env.RATE_LIMIT_OUTAGE_POLICY,
 };
 
+function restoreEnvVar(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+    return;
+  }
+
+  process.env[name] = value;
+}
+
 afterEach(() => {
-  process.env.NODE_ENV = ORIGINAL_ENV.NODE_ENV;
-  process.env.DATABASE_URL = ORIGINAL_ENV.DATABASE_URL;
-  process.env.JWT_SECRET = ORIGINAL_ENV.JWT_SECRET;
-  process.env.JWT_REFRESH_SECRET = ORIGINAL_ENV.JWT_REFRESH_SECRET;
-  process.env.UPSTASH_REDIS_REST_URL = ORIGINAL_ENV.UPSTASH_REDIS_REST_URL;
-  process.env.UPSTASH_REDIS_REST_TOKEN = ORIGINAL_ENV.UPSTASH_REDIS_REST_TOKEN;
-  process.env.CACHE_OUTAGE_POLICY = ORIGINAL_ENV.CACHE_OUTAGE_POLICY;
-  process.env.RATE_LIMIT_OUTAGE_POLICY = ORIGINAL_ENV.RATE_LIMIT_OUTAGE_POLICY;
+  restoreEnvVar('NODE_ENV', ORIGINAL_ENV.NODE_ENV);
+  restoreEnvVar('DATABASE_URL', ORIGINAL_ENV.DATABASE_URL);
+  restoreEnvVar('JWT_SECRET', ORIGINAL_ENV.JWT_SECRET);
+  restoreEnvVar('JWT_REFRESH_SECRET', ORIGINAL_ENV.JWT_REFRESH_SECRET);
+  restoreEnvVar('UPSTASH_REDIS_REST_URL', ORIGINAL_ENV.UPSTASH_REDIS_REST_URL);
+  restoreEnvVar('UPSTASH_REDIS_REST_TOKEN', ORIGINAL_ENV.UPSTASH_REDIS_REST_TOKEN);
+  restoreEnvVar('CACHE_OUTAGE_POLICY', ORIGINAL_ENV.CACHE_OUTAGE_POLICY);
+  restoreEnvVar('RATE_LIMIT_OUTAGE_POLICY', ORIGINAL_ENV.RATE_LIMIT_OUTAGE_POLICY);
 });
 
 describe('AppConfig hardening policy', () => {
