@@ -12,7 +12,6 @@ import {
 } from './auth.constants.js';
 import { AuthResponseDto } from './dto/auth-response.dto.js';
 import { LoginDto } from './dto/login.dto.js';
-import { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 
 type AuthUser = {
@@ -30,6 +29,11 @@ type RefreshTokenPayload = {
   sub: string;
   email: string;
   role: UserRole;
+};
+
+type IssuedAuthSession = {
+  response: AuthResponseDto;
+  refreshToken: string;
 };
 
 @Injectable()
@@ -51,7 +55,7 @@ export class AuthService {
       : currentRole;
   }
 
-  async register(dto: RegisterDto): Promise<AuthResponseDto> {
+  async register(dto: RegisterDto): Promise<IssuedAuthSession> {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) {
       throw new ConflictException('A user with this email already exists');
@@ -73,7 +77,7 @@ export class AuthService {
     return this.issueAndPersistTokens(user);
   }
 
-  async login(dto: LoginDto): Promise<AuthResponseDto> {
+  async login(dto: LoginDto): Promise<IssuedAuthSession> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       select: {
@@ -104,11 +108,11 @@ export class AuthService {
     return this.issueAndPersistTokens({ ...user, role });
   }
 
-  async refresh(dto: RefreshTokenDto): Promise<AuthResponseDto> {
+  async refresh(refreshToken: string): Promise<IssuedAuthSession> {
     let payload: RefreshTokenPayload;
 
     try {
-      payload = await this.jwtService.verifyAsync<RefreshTokenPayload>(dto.refreshToken, {
+      payload = await this.jwtService.verifyAsync<RefreshTokenPayload>(refreshToken, {
         secret: resolveRefreshTokenSecret(),
       });
     } catch {
@@ -129,7 +133,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const isValidRefreshToken = await verifyPassword(dto.refreshToken, user.refreshTokenHash);
+    const isValidRefreshToken = await verifyPassword(refreshToken, user.refreshTokenHash);
     if (!isValidRefreshToken) {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -137,15 +141,37 @@ export class AuthService {
     return this.issueAndPersistTokens(user);
   }
 
-  async logout(userId: string): Promise<{ revoked: true }> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        refreshTokenHash: null,
-      },
+  async logoutByRefreshToken(refreshToken: string): Promise<void> {
+    let payload: RefreshTokenPayload;
+
+    try {
+      payload = await this.jwtService.verifyAsync<RefreshTokenPayload>(refreshToken, {
+        secret: resolveRefreshTokenSecret(),
+      });
+    } catch {
+      // An invalid or expired refresh token cannot be used anyway, so there is
+      // nothing to revoke server-side. The cookie has already been cleared.
+      return;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { refreshTokenHash: true },
     });
 
-    return { revoked: true };
+    if (!user?.refreshTokenHash) {
+      return;
+    }
+
+    const matchesCurrentSession = await verifyPassword(refreshToken, user.refreshTokenHash);
+    if (!matchesCurrentSession) {
+      return;
+    }
+
+    await this.prisma.user.update({
+      where: { id: payload.sub },
+      data: { refreshTokenHash: null },
+    });
   }
 
   private toAuthUser(user: AuthUserWithSecrets): AuthUser {
@@ -156,7 +182,7 @@ export class AuthService {
     };
   }
 
-  private async issueAndPersistTokens(user: AuthUserWithSecrets): Promise<AuthResponseDto> {
+  private async issueAndPersistTokens(user: AuthUserWithSecrets): Promise<IssuedAuthSession> {
     const safeUser = this.toAuthUser(user);
     const tokenPayload = {
       sub: safeUser.id,
@@ -183,9 +209,11 @@ export class AuthService {
     });
 
     return {
-      accessToken,
+      response: {
+        accessToken,
+        user: safeUser,
+      },
       refreshToken,
-      user: safeUser,
     };
   }
 }

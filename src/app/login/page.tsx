@@ -8,7 +8,11 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, status, role } = useAuth();
+  const { login, status, role, restoreSession } = useAuth();
+
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
 
   // Single role-aware redirect once authenticated (covers both fresh logins and
   // already-authenticated visits) to avoid competing navigations.

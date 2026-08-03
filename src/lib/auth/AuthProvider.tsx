@@ -13,38 +13,19 @@ import { apiClient } from '@/lib/api/client';
 import * as authApi from '@/lib/api/auth';
 import type { AuthResponse, AuthUser, UserRole } from '@/types/auth';
 
-const REFRESH_TOKEN_STORAGE_KEY = 'gh_refresh_token';
-
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
 type AuthContextValue = {
   user: AuthUser | null;
   role: UserRole | null;
   status: AuthStatus;
+  restoreSession: () => Promise<boolean>;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-function readStoredRefreshToken(): string | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  return window.localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
-}
-
-function persistRefreshToken(token: string | null): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  if (token) {
-    window.localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token);
-  } else {
-    window.localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-  }
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const accessTokenRef = useRef<string | null>(null);
@@ -53,11 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // cannot resurrect the session after the user has signed out.
   const sessionEpochRef = useRef(0);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [status, setStatus] = useState<AuthStatus>('unauthenticated');
 
   const applySession = useCallback((session: AuthResponse) => {
     accessTokenRef.current = session.accessToken;
-    persistRefreshToken(session.refreshToken);
     setUser(session.user);
     setStatus('authenticated');
   }, []);
@@ -65,7 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearSession = useCallback(() => {
     sessionEpochRef.current += 1;
     accessTokenRef.current = null;
-    persistRefreshToken(null);
     setUser(null);
     setStatus('unauthenticated');
   }, []);
@@ -75,7 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // (still needed to authorize the logout request itself).
   const invalidatePendingRefresh = useCallback(() => {
     sessionEpochRef.current += 1;
-    persistRefreshToken(null);
   }, []);
 
   // Single-flight refresh: concurrent 401s (and Strict Mode double-invokes) share
@@ -86,15 +64,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const epochAtStart = sessionEpochRef.current;
+    setStatus('loading');
 
     const promise = (async () => {
-      const storedRefreshToken = readStoredRefreshToken();
-      if (!storedRefreshToken) {
-        clearSession();
-        return null;
-      }
       try {
-        const session = await authApi.refresh(storedRefreshToken);
+        const session = await authApi.refresh();
         // A logout may have completed while this request was in flight; discard
         // the result instead of resurrecting a session the user already left.
         if (sessionEpochRef.current !== epochAtStart) {
@@ -116,6 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return promise;
   }, [applySession, clearSession]);
 
+  const restoreSession = useCallback(async (): Promise<boolean> => {
+    if (status === 'authenticated') {
+      return true;
+    }
+
+    const token = await refreshSession();
+    return token !== null;
+  }, [refreshSession, status]);
+
   // Register token hooks with the shared API client (access token + 401 refresh).
   useEffect(() => {
     apiClient.setAccessTokenProvider(() => accessTokenRef.current);
@@ -125,21 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       apiClient.setAccessTokenProvider(null);
       apiClient.setTokenRefresher(null);
     };
-  }, [refreshSession]);
-
-  // Bootstrap the session on first load from the stored refresh token.
-  useEffect(() => {
-    async function bootstrap() {
-      const storedRefreshToken = readStoredRefreshToken();
-      if (!storedRefreshToken) {
-        setStatus('unauthenticated');
-        return;
-      }
-
-      await refreshSession();
-    }
-
-    void bootstrap();
   }, [refreshSession]);
 
   const login = useCallback(
@@ -180,11 +148,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       role: user?.role ?? null,
       status,
+      restoreSession,
       login,
       register,
       logout,
     }),
-    [user, status, login, register, logout]
+    [user, status, restoreSession, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

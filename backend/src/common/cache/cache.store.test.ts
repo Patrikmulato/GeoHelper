@@ -5,11 +5,17 @@ import { CacheStore } from './cache.store.js';
 const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
 const originalToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 const originalNodeEnv = process.env.NODE_ENV;
+const originalCachePolicy = process.env.CACHE_OUTAGE_POLICY;
 
 afterEach(() => {
   process.env.UPSTASH_REDIS_REST_URL = originalUrl;
   process.env.UPSTASH_REDIS_REST_TOKEN = originalToken;
   process.env.NODE_ENV = originalNodeEnv;
+  if (originalCachePolicy === undefined) {
+    delete process.env.CACHE_OUTAGE_POLICY;
+  } else {
+    process.env.CACHE_OUTAGE_POLICY = originalCachePolicy;
+  }
 });
 
 describe('CacheStore', () => {
@@ -140,8 +146,8 @@ describe('CacheStore', () => {
     }
   });
 
-  it('throws when Upstash is not configured in production', async () => {
-    process.env.NODE_ENV = 'production';
+  it('throws when Upstash is not configured and policy is fail-closed', async () => {
+    process.env.CACHE_OUTAGE_POLICY = 'fail-closed';
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -151,8 +157,55 @@ describe('CacheStore', () => {
         await store.get('missing-upstash');
       },
       {
-        message: 'Upstash Redis store is required in production for shared cache',
+        message: 'Upstash Redis store is required by the fail-closed cache policy',
       }
     );
+  });
+
+  it('falls back to memory when Upstash is optional (fail-open default)', async () => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const store = new CacheStore();
+    await store.set('opt', 'value-opt', 60);
+    assert.equal(await store.get('opt'), 'value-opt');
+  });
+
+  it('falls back to memory when policy is fail-open and Upstash errors', async () => {
+    process.env.NODE_ENV = 'development';
+    process.env.CACHE_OUTAGE_POLICY = 'fail-open';
+    process.env.UPSTASH_REDIS_REST_URL = 'https://fake.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token';
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      throw new Error('network unavailable');
+    }) as typeof globalThis.fetch;
+
+    try {
+      const store = new CacheStore();
+      await store.set('policy-fallback', 'ok', 60);
+      const value = await store.get('policy-fallback');
+      assert.equal(value, 'ok');
+    } finally {
+      globalThis.fetch = originalFetch;
+      delete process.env.CACHE_OUTAGE_POLICY;
+    }
+  });
+
+  it('logs missing optional Upstash configuration only once per store', async () => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    const warnings: string[] = [];
+    const logger = {
+      warn: (_context: string, message: string) => warnings.push(message),
+    };
+    const store = new CacheStore(logger as never);
+
+    await store.set('once', 'value', 60);
+    await store.get('once');
+    await store.increment('counter');
+
+    assert.deepEqual(warnings, ['Using in-memory fallback by policy']);
   });
 });

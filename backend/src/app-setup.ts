@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import fastifyCookie from '@fastify/cookie';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { ValidationExceptionFilter } from './common/filters/validation.exception.filter.js';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
@@ -35,6 +36,8 @@ export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}
   const { withGlobalPrefix = true } = options;
   const appConfig = getAppConfig();
 
+  app.register(fastifyCookie);
+
   // Build allowed origins - supports localhost, env vars, and Vercel preview deployments
   const allowedOrigins = [
     'http://localhost:3000',
@@ -50,12 +53,10 @@ export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void
     ) => {
-      if (isOriginAllowed(origin, allowedOrigins)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error('Not allowed by CORS'));
+      // Deny (do not error) on disallowed origins: erroring would surface as a
+      // 500 before route handlers run. Denying simply omits CORS headers, and
+      // sensitive endpoints enforce their own origin check for a clean 403.
+      callback(null, isOriginAllowed(origin, allowedOrigins));
     },
     credentials: true,
   };

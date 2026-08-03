@@ -1,5 +1,22 @@
 export const ACCESS_TOKEN_EXPIRES_IN = '1h';
 export const REFRESH_TOKEN_EXPIRES_IN = '7d';
+export const REFRESH_TOKEN_COOKIE_NAME = 'refresh_token';
+
+export function getRefreshTokenCookieOptions(): {
+  httpOnly: true;
+  secure: boolean;
+  sameSite: 'lax';
+  path: string;
+  maxAge: number;
+} {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/api/auth',
+    maxAge: 7 * 24 * 60 * 60,
+  };
+}
 
 export function resolveAccessTokenSecret(): string {
   if (process.env.JWT_SECRET) {

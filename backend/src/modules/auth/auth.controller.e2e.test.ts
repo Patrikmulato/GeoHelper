@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { ValidationPipe } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import fastifyCookie from '@fastify/cookie';
 import { Test } from '@nestjs/testing';
 import { UserRole } from '../../../generated/prisma/index.js';
 import { AppModule } from '../../app.module.js';
@@ -14,6 +15,26 @@ type MockUser = {
   passwordHash: string;
   refreshTokenHash: string | null;
 };
+
+function extractRefreshCookie(setCookieHeader: string | string[] | undefined): string {
+  const rawList = Array.isArray(setCookieHeader)
+    ? setCookieHeader
+    : setCookieHeader
+      ? [setCookieHeader]
+      : [];
+
+  const refreshEntry = rawList.find((entry) => entry.startsWith('refresh_token='));
+  if (!refreshEntry) {
+    throw new Error('Missing refresh_token set-cookie header');
+  }
+
+  const pair = refreshEntry.split(';')[0];
+  if (!pair) {
+    throw new Error('Invalid set-cookie header format');
+  }
+
+  return pair;
+}
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
@@ -103,6 +124,7 @@ describe('AuthController (e2e)', () => {
       .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    await app.register(fastifyCookie);
     app.setGlobalPrefix('api');
     app.useGlobalPipes(
       new ValidationPipe({
@@ -135,7 +157,7 @@ describe('AuthController (e2e)', () => {
     assert.equal(registerRes.statusCode, 201, registerRes.body);
     const registerBody = registerRes.json();
     assert.equal(typeof registerBody.accessToken, 'string');
-    assert.equal(typeof registerBody.refreshToken, 'string');
+    assert.equal('refreshToken' in registerBody, false);
     assert.equal(registerBody.user.email, email);
     assert.equal(registerBody.user.role, 'USER');
     assert.equal('password' in registerBody, false);
@@ -153,7 +175,9 @@ describe('AuthController (e2e)', () => {
     assert.equal(loginRes.statusCode, 201, loginRes.body);
     const loginBody = loginRes.json();
     assert.equal(typeof loginBody.accessToken, 'string');
-    assert.equal(typeof loginBody.refreshToken, 'string');
+    assert.equal('refreshToken' in loginBody, false);
+
+    const refreshCookie = extractRefreshCookie(loginRes.headers['set-cookie']);
 
     const meRes = await app.inject({
       method: 'GET',
@@ -173,37 +197,80 @@ describe('AuthController (e2e)', () => {
     const refreshRes = await app.inject({
       method: 'POST',
       url: '/api/auth/refresh',
-      payload: {
-        refreshToken: loginBody.refreshToken,
+      headers: {
+        origin: 'http://localhost:3000',
+        cookie: refreshCookie,
       },
     });
 
     assert.equal(refreshRes.statusCode, 201, refreshRes.body);
     const refreshBody = refreshRes.json();
     assert.equal(typeof refreshBody.accessToken, 'string');
-    assert.equal(typeof refreshBody.refreshToken, 'string');
+    assert.equal('refreshToken' in refreshBody, false);
+
+    const rotatedRefreshCookie = extractRefreshCookie(refreshRes.headers['set-cookie']);
 
     const logoutRes = await app.inject({
       method: 'POST',
       url: '/api/auth/logout',
       headers: {
-        authorization: `Bearer ${refreshBody.accessToken}`,
+        origin: 'http://localhost:3000',
+        cookie: rotatedRefreshCookie,
       },
     });
 
     assert.equal(logoutRes.statusCode, 201, logoutRes.body);
     const logoutBody = logoutRes.json();
     assert.equal(logoutBody.revoked, true);
+    const clearedCookieHeader = Array.isArray(logoutRes.headers['set-cookie'])
+      ? logoutRes.headers['set-cookie'].join('; ')
+      : (logoutRes.headers['set-cookie'] ?? '');
+    assert.match(clearedCookieHeader, /refresh_token=;/);
+    assert.match(clearedCookieHeader, /Path=\/api\/auth/);
+    assert.match(clearedCookieHeader, /Expires=Thu, 01 Jan 1970 00:00:00 GMT/);
 
     const refreshAfterLogoutRes = await app.inject({
       method: 'POST',
       url: '/api/auth/refresh',
-      payload: {
-        refreshToken: refreshBody.refreshToken,
+      headers: {
+        origin: 'http://localhost:3000',
+        cookie: rotatedRefreshCookie,
       },
     });
 
     assert.equal(refreshAfterLogoutRes.statusCode, 401, refreshAfterLogoutRes.body);
+  });
+
+  it('logout without an access token still revokes the refresh session', async () => {
+    const email = uniqueEmail('logout-no-access');
+    const password = 'super-secret-123';
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: { email, password },
+    });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email, password },
+    });
+    const cookie = extractRefreshCookie(login.headers['set-cookie']);
+
+    // No Authorization header: logout must not depend on a valid access token.
+    const logoutRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: { origin: 'http://localhost:3000', cookie },
+    });
+    assert.equal(logoutRes.statusCode, 201, logoutRes.body);
+
+    const refreshAfterLogout = await app.inject({
+      method: 'POST',
+      url: '/api/auth/refresh',
+      headers: { origin: 'http://localhost:3000', cookie },
+    });
+    assert.equal(refreshAfterLogout.statusCode, 401, refreshAfterLogout.body);
   });
 
   it('register returns 409 for duplicate email', async () => {
@@ -264,27 +331,63 @@ describe('AuthController (e2e)', () => {
     const badRefreshRes = await app.inject({
       method: 'POST',
       url: '/api/auth/refresh',
-      payload: {
-        // Long enough to pass RefreshTokenDto's length validation, but not a
-        // real/known token, so this exercises the auth service's rejection
-        // path rather than DTO validation.
-        refreshToken: 'not-a-valid-refresh-token-value',
+      headers: {
+        origin: 'http://localhost:3000',
+        cookie: 'refresh_token=not-a-valid-refresh-token-value',
       },
     });
 
     assert.equal(badRefreshRes.statusCode, 401, badRefreshRes.body);
   });
 
-  it('refresh returns 400 for a too-short refresh token', async () => {
+  it('refresh returns 401 when refresh cookie is missing', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/auth/refresh',
-      payload: {
-        refreshToken: 'too-short',
+      headers: {
+        origin: 'http://localhost:3000',
       },
     });
 
-    assert.equal(res.statusCode, 400, res.body);
+    assert.equal(res.statusCode, 401, res.body);
+  });
+
+  it('refresh returns 403 for disallowed origin', async () => {
+    const email = uniqueEmail('origin-reject');
+    const password = 'super-secret-123';
+
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email, password },
+    });
+
+    if (loginRes.statusCode !== 201) {
+      await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: { email, password },
+      });
+    }
+
+    const secondLogin = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email, password },
+    });
+
+    const refreshCookie = extractRefreshCookie(secondLogin.headers['set-cookie']);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/refresh',
+      headers: {
+        origin: 'https://attacker.example',
+        cookie: refreshCookie,
+      },
+    });
+
+    assert.equal(res.statusCode, 403, res.body);
   });
 
   it('GET /api/auth/me returns 401 when access token is invalid', async () => {
