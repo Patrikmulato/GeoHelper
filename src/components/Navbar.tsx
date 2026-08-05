@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 
 const TABS = [
+  { label: 'Dashboard', href: '/dashboard', role: 'ADMIN' },
   { label: 'World Map', href: '/' },
   { label: 'US Plates', href: '/us-plates' },
   { label: 'Useful Maps', href: '/useful-maps' },
@@ -68,8 +69,11 @@ export default function Navbar() {
         )}
       </div>
       <nav className="flex gap-1">
-        {TABS.map(({ label, href }) => {
+        {TABS.map(({ label, href, role }) => {
           const isActive = pathname === href;
+          if (role && role !== 'ADMIN') {
+            return null;
+          }
           return isActive ? (
             <span
               key={href}

@@ -17,6 +17,7 @@
     "sync:carmeta": "tsx scripts/sync-carmeta.ts",
     "sync:data": "tsx scripts/sync-geocarhelpdesk.ts && pnpm merge:crawlers",
     "sync:data:pull": "git -C ../../GeoCarHelpDesk pull --ff-only && pnpm sync:data",
+    "migrate:useful-maps": "tsx scripts/migrate-useful-maps-legacy.ts",
     "crawl:guides": "tsx crawlers/plonk/crawl-guides.ts",
     "consolidate:guides": "tsx crawlers/plonk/consolidate.ts",
     "extract:guides": "tsx crawlers/plonk/extract-guide-data.ts",

@@ -63,6 +63,7 @@ export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}
       callback(null, isOriginAllowed(origin, allowedOrigins));
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   };
 
   // Type assertion: Fastify CORS types are strict about origin function signature,

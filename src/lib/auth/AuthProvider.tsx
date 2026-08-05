@@ -30,14 +30,21 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const accessTokenRef = useRef<string | null>(null);
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
+  const unauthenticatedRefreshBlockedUntilRef = useRef(0);
+  const statusRef = useRef<AuthStatus>('unauthenticated');
   // Bumped on every explicit logout so a refresh that was already in flight
   // cannot resurrect the session after the user has signed out.
   const sessionEpochRef = useRef(0);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>('unauthenticated');
 
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
   const applySession = useCallback((session: AuthResponse) => {
     accessTokenRef.current = session.accessToken;
+    unauthenticatedRefreshBlockedUntilRef.current = 0;
     setUser(session.user);
     setStatus('authenticated');
   }, []);
@@ -58,51 +65,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Single-flight refresh: concurrent 401s (and Strict Mode double-invokes) share
   // one rotation so the backend's single stored refresh-token hash is not raced.
-  const refreshSession = useCallback(async (): Promise<string | null> => {
-    if (refreshPromiseRef.current) {
-      return refreshPromiseRef.current;
-    }
+  const refreshSession = useCallback(
+    async (force = false): Promise<string | null> => {
+      if (refreshPromiseRef.current) {
+        return refreshPromiseRef.current;
+      }
 
-    const epochAtStart = sessionEpochRef.current;
-    setStatus('loading');
-
-    const promise = (async () => {
-      try {
-        const session = await authApi.refresh();
-        // A logout may have completed while this request was in flight; discard
-        // the result instead of resurrecting a session the user already left.
-        if (sessionEpochRef.current !== epochAtStart) {
-          return null;
-        }
-        applySession(session);
-        return session.accessToken;
-      } catch {
-        if (sessionEpochRef.current === epochAtStart) {
-          clearSession();
-        }
+      const nowMs = Date.now();
+      if (
+        !force &&
+        !accessTokenRef.current &&
+        statusRef.current === 'unauthenticated' &&
+        unauthenticatedRefreshBlockedUntilRef.current > nowMs
+      ) {
         return null;
       }
-    })().finally(() => {
-      refreshPromiseRef.current = null;
-    });
 
-    refreshPromiseRef.current = promise;
-    return promise;
-  }, [applySession, clearSession]);
+      const epochAtStart = sessionEpochRef.current;
+      setStatus('loading');
+
+      const promise = (async () => {
+        try {
+          const session = await authApi.refresh();
+          // A logout may have completed while this request was in flight; discard
+          // the result instead of resurrecting a session the user already left.
+          if (sessionEpochRef.current !== epochAtStart) {
+            return null;
+          }
+
+          unauthenticatedRefreshBlockedUntilRef.current = 0;
+          applySession(session);
+          return session.accessToken;
+        } catch {
+          if (sessionEpochRef.current === epochAtStart) {
+            // Prevent repeated refresh attempts while clearly signed out.
+            unauthenticatedRefreshBlockedUntilRef.current = Date.now() + 30_000;
+            clearSession();
+          }
+          return null;
+        }
+      })().finally(() => {
+        refreshPromiseRef.current = null;
+      });
+
+      refreshPromiseRef.current = promise;
+      return promise;
+    },
+    [applySession, clearSession]
+  );
 
   const restoreSession = useCallback(async (): Promise<boolean> => {
-    if (status === 'authenticated') {
+    if (statusRef.current === 'authenticated') {
       return true;
     }
 
-    const token = await refreshSession();
+    const token = await refreshSession(true);
     return token !== null;
-  }, [refreshSession, status]);
+  }, [refreshSession]);
 
   // Register token hooks with the shared API client (access token + 401 refresh).
   useEffect(() => {
     apiClient.setAccessTokenProvider(() => accessTokenRef.current);
-    apiClient.setTokenRefresher(refreshSession);
+    apiClient.setTokenRefresher(() => refreshSession(false));
 
     return () => {
       apiClient.setAccessTokenProvider(null);

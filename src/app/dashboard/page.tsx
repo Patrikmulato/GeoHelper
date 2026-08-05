@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteUserById, listUsers } from '@/lib/api/users';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import UsefulMapsAdminPanel from '@/components/UsefulMapsAdminPanel';
 import type { User } from '@/types/user';
 
 export default function DashboardPage() {
@@ -144,6 +145,8 @@ export default function DashboardPage() {
             </table>
           </div>
         )}
+
+        <UsefulMapsAdminPanel />
       </div>
     </div>
   );

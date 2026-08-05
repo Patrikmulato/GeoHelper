@@ -42,6 +42,9 @@ describe('UsersService', () => {
         },
         findMany: async () => [],
       },
+      usefulMap: {
+        count: async () => 0,
+      },
     };
 
     const service = new UsersService(prismaMock as unknown as PrismaService);
@@ -75,6 +78,9 @@ describe('UsersService', () => {
           throw new Error('create should not be called');
         },
         findMany: async () => [],
+      },
+      usefulMap: {
+        count: async () => 0,
       },
     };
 
@@ -118,6 +124,9 @@ describe('UsersService', () => {
         },
         findMany: async () => [],
       },
+      usefulMap: {
+        count: async () => 0,
+      },
     };
 
     const service = new UsersService(prismaMock as unknown as PrismaService);
@@ -141,6 +150,9 @@ describe('UsersService', () => {
           throw new Error('create should not be called');
         },
         findMany: async () => [],
+      },
+      usefulMap: {
+        count: async () => 0,
       },
     };
 
@@ -171,6 +183,9 @@ describe('UsersService', () => {
             updatedAt,
           },
         ],
+      },
+      usefulMap: {
+        count: async () => 0,
       },
     };
 
@@ -205,6 +220,9 @@ describe('UsersService', () => {
           };
         },
       },
+      usefulMap: {
+        count: async () => 0,
+      },
     };
 
     const service = new UsersService(prismaMock as unknown as PrismaService);
@@ -226,6 +244,9 @@ describe('UsersService', () => {
         delete: async () => {
           throw new Error('delete should not be called');
         },
+      },
+      usefulMap: {
+        count: async () => 0,
       },
     };
 
@@ -250,6 +271,9 @@ describe('UsersService', () => {
         delete: async () => {
           throw new Error('delete should not be called');
         },
+      },
+      usefulMap: {
+        count: async () => 0,
       },
     };
 
