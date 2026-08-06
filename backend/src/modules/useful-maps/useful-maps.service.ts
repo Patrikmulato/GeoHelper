@@ -171,6 +171,28 @@ export class UsefulMapsService {
     return usefulMap as UsefulMapRecord;
   }
 
+  private assertAllowedPublicBlobUrl(imageUrl: string): string {
+    let parsedImageUrl: URL;
+    let parsedBaseUrl: URL;
+
+    try {
+      parsedImageUrl = new URL(imageUrl);
+      parsedBaseUrl = new URL(this.cfg.blobPublicBaseUrl);
+    } catch {
+      throw new BadRequestException('Image URL is invalid');
+    }
+
+    if (parsedImageUrl.protocol !== 'https:') {
+      throw new BadRequestException('Image URL must use HTTPS');
+    }
+
+    if (parsedImageUrl.hostname !== parsedBaseUrl.hostname) {
+      throw new BadRequestException('Image URL host is not permitted');
+    }
+
+    return parsedImageUrl.toString();
+  }
+
   private async verifyBlobAgainstMetadata(input: {
     imageUrl: string;
     blobPathname: string;
@@ -196,7 +218,8 @@ export class UsefulMapsService {
       throw new BadRequestException('Blob exceeds the maximum size permitted by the ticket');
     }
 
-    const blobHead = await headPublicBlob(input.imageUrl);
+    const validatedImageUrl = this.assertAllowedPublicBlobUrl(input.imageUrl);
+    const blobHead = await headPublicBlob(validatedImageUrl);
     if (blobHead.contentType && blobHead.contentType !== input.mimeType) {
       throw new BadRequestException('Blob content type does not match metadata');
     }
