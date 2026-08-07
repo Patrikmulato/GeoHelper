@@ -70,7 +70,7 @@ export default function UsefulMapsAdminPanel() {
 
     try {
       const [categoryList, result] = await Promise.all([
-        listUsefulMapCategories(),
+        listUsefulMapCategories({ onlyWithImages: true }),
         listAdminUsefulMaps({ page: 1, limit: PAGE_SIZE }),
       ]);
       setCategories(categoryList);

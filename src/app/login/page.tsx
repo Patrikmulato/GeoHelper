@@ -8,19 +8,15 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, status, role, restoreSession } = useAuth();
-
-  useEffect(() => {
-    void restoreSession();
-  }, [restoreSession]);
+  const { login, status, isAdmin } = useAuth();
 
   // Single role-aware redirect once authenticated (covers both fresh logins and
   // already-authenticated visits) to avoid competing navigations.
   useEffect(() => {
     if (status === 'authenticated') {
-      router.replace(role === 'ADMIN' ? '/dashboard' : '/');
+      router.replace(isAdmin ? '/dashboard' : '/');
     }
-  }, [status, role, router]);
+  }, [status, isAdmin, router]);
 
   return (
     <AuthForm

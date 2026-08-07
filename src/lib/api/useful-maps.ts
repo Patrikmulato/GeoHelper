@@ -14,8 +14,14 @@ import type {
   UsefulMapUploadTicket,
 } from '@/types/useful-maps';
 
-export function listUsefulMapCategories() {
-  return apiClient.get<UsefulMapCategory[]>('/api/useful-maps/categories');
+export function listUsefulMapCategories({
+  onlyWithImages = false,
+}: { onlyWithImages?: boolean } = {}) {
+  return apiClient.get<UsefulMapCategory[]>('/api/useful-maps/categories', {
+    params: {
+      onlyWithImages: String(onlyWithImages),
+    },
+  });
 }
 
 export function listPublicUsefulMaps(params: ListPublicUsefulMapsParams = {}) {

@@ -134,6 +134,7 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
               willChange: 'transform',
             }}
             unoptimized
+            loading="eager"
             draggable={false}
           />
         </div>

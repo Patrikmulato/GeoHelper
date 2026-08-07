@@ -5,7 +5,7 @@ import UsefulMapsGallery from '@/components/UsefulMapsGallery';
 import UsefulMapsSidebar from '@/components/UsefulMapsSidebar';
 import { listPublicUsefulMaps, listUsefulMapCategories } from '@/lib/api/useful-maps';
 import type { UsefulMapCategory, UsefulMapSummary } from '@/types/useful-maps';
-import { useAuth } from '@/lib/auth/AuthProvider';
+import { useAuth, useAuthDependentEffect } from '@/lib/auth/AuthProvider';
 
 const SCROLL_CONTAINER_ID = 'useful-maps-scroll';
 const PAGE_SIZE = 12;
@@ -31,18 +31,17 @@ export default function UsefulMapsBrowser() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { role } = useAuth();
+  const { isAdmin } = useAuth();
 
-  useEffect(() => {
+  useAuthDependentEffect(() => {
     let active = true;
 
     async function loadCategories() {
       try {
-        const categoryList = await listUsefulMapCategories();
+        const categoryList = await listUsefulMapCategories({ onlyWithImages: !isAdmin });
         if (active) {
           setCategories(categoryList);
         }
-        console.log('Loaded useful map categories:', categoryList);
       } catch {
         if (active) {
           setError('Failed to load useful map categories.');
@@ -55,7 +54,7 @@ export default function UsefulMapsBrowser() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     let active = true;
@@ -171,7 +170,7 @@ export default function UsefulMapsBrowser() {
             <p>
               {loading
                 ? 'Loading useful maps...'
-                : (error ?? (role === 'ADMIN' && `${items.length} of ${total} maps loaded`))}
+                : (error ?? (isAdmin && `${items.length} of ${total} maps loaded`))}
             </p>
             {hasMore && !loading && (
               <button
