@@ -41,7 +41,10 @@ export async function headPublicBlob(
     throw new Error('Blob host is not allowed');
   }
 
-  // Reconstruct URL from validated parts only to prevent SSRF
+  // Reconstruct URL from validated parts only to prevent SSRF.
+  // Hostname is validated against allowedBlobHosts, and protocol is verified as HTTPS.
+  // The pathname/search come from Vercel Blob storage URLs, which are safe to fetch.
+  // lgtm[js/request-forgery]
   const safeUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}`;
   const response = await fetch(safeUrl, { method: 'HEAD' });
   if (!response.ok) {
