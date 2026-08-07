@@ -33,11 +33,17 @@ export async function headPublicBlob(
     throw new Error('Invalid blob URL');
   }
 
+  if (parsedUrl.protocol !== 'https:') {
+    throw new Error('Blob URL must use HTTPS');
+  }
+
   if (!isHostAllowed(parsedUrl.hostname, allowedBlobHosts)) {
     throw new Error('Blob host is not allowed');
   }
 
-  const response = await fetch(url, { method: 'HEAD' });
+  // Reconstruct URL from validated parts only to prevent SSRF
+  const safeUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}`;
+  const response = await fetch(safeUrl, { method: 'HEAD' });
   if (!response.ok) {
     throw new Error(`Blob HEAD request failed with status ${response.status}`);
   }
