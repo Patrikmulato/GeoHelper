@@ -42,8 +42,18 @@ export class UsefulMapsController {
   @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600')
   @RateLimit(60, 60_000)
   @ApiResponseMessage('Useful map categories loaded')
-  async listCategories(): Promise<UsefulMapCategoryDto[]> {
-    return this.usefulMapsService.listCategories();
+  async listCategories(
+    @Query(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        expectedType: ListPublicUsefulMapsQueryDto,
+      })
+    )
+    query: ListPublicUsefulMapsQueryDto
+  ): Promise<UsefulMapCategoryDto[]> {
+    return this.usefulMapsService.listCategories(query.onlyWithImages);
   }
 
   @Get('public')

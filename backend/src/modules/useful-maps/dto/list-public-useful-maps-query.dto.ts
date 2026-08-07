@@ -1,5 +1,14 @@
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min, Matches } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  Matches,
+  IsBoolean,
+} from 'class-validator';
 
 export class ListPublicUsefulMapsQueryDto {
   @IsOptional()
@@ -20,4 +29,14 @@ export class ListPublicUsefulMapsQueryDto {
   @Min(1)
   @Max(100)
   limit?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'boolean') return value;
+    if (value === 'true' || value === '1') return true;
+    if (value === 'false' || value === '0') return false;
+    return false;
+  })
+  @IsBoolean()
+  onlyWithImages?: boolean;
 }
