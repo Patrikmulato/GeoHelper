@@ -18,6 +18,7 @@ type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 type AuthContextValue = {
   user: AuthUser | null;
   role: UserRole | null;
+  isAdmin: boolean;
   status: AuthStatus;
   restoreSession: () => Promise<boolean>;
   login: (email: string, password: string) => Promise<AuthUser>;
@@ -31,16 +32,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const accessTokenRef = useRef<string | null>(null);
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
   const unauthenticatedRefreshBlockedUntilRef = useRef(0);
-  const statusRef = useRef<AuthStatus>('unauthenticated');
+  const didAttemptInitialRestoreRef = useRef(false);
+  const statusRef = useRef<AuthStatus>('loading');
+  const resolveBootstrapRef = useRef<(() => void) | null>(null);
   // Bumped on every explicit logout so a refresh that was already in flight
   // cannot resurrect the session after the user has signed out.
   const sessionEpochRef = useRef(0);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [status, setStatus] = useState<AuthStatus>('unauthenticated');
+  const [status, setStatus] = useState<AuthStatus>('loading');
 
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
+
+  // Initialize bootstrap promise resolver once
+  useEffect(() => {
+    if (!resolveBootstrapRef.current) {
+      let resolve: () => void = () => {};
+      const promise = new Promise<void>((r) => {
+        resolve = r;
+      });
+      resolveBootstrapRef.current = resolve;
+      globalResolveBootstrap = resolve;
+      globalBootstrapPromise = promise;
+    }
+  }, []);
 
   const applySession = useCallback((session: AuthResponse) => {
     accessTokenRef.current = session.accessToken;
@@ -123,6 +139,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return token !== null;
   }, [refreshSession]);
 
+  useEffect(() => {
+    if (didAttemptInitialRestoreRef.current) {
+      return;
+    }
+
+    didAttemptInitialRestoreRef.current = true;
+    restoreSession().finally(() => {
+      resolveBootstrapRef.current?.();
+      // Signal global bootstrap completion so API client can wait if needed
+      globalResolveBootstrap?.();
+    });
+  }, [restoreSession]);
+
   // Register token hooks with the shared API client (access token + 401 refresh).
   useEffect(() => {
     apiClient.setAccessTokenProvider(() => accessTokenRef.current);
@@ -171,6 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       role: user?.role ?? null,
+      isAdmin: user?.role === 'ADMIN',
       status,
       restoreSession,
       login,
@@ -189,4 +219,44 @@ export function useAuth(): AuthContextValue {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return ctx;
+}
+
+let globalBootstrapPromise: Promise<void> | null = null;
+let globalResolveBootstrap: (() => void) | null = null;
+
+// Initialize global bootstrap tracking
+{
+  let resolve: () => void = () => {};
+  globalBootstrapPromise = new Promise((r) => {
+    resolve = r;
+  });
+  globalResolveBootstrap = resolve;
+}
+
+export function getAuthBootstrapPromise(): Promise<void> {
+  return globalBootstrapPromise ?? Promise.resolve();
+}
+
+export function useAuthBootstrapComplete(): boolean {
+  const { status } = useAuth();
+  return status !== 'loading';
+}
+
+export function useAuthDependentEffect(
+  effect: () => void | (() => void),
+  deps?: React.DependencyList
+): void {
+  const { status } = useAuth();
+  useEffect(() => {
+    if (status === 'loading') {
+      return;
+    }
+    return effect();
+    // This hook intentionally wraps useEffect to add auth bootstrap gating.
+    // The effect is passed as a function parameter and called directly,
+    // so we don't include it in the dependency array to avoid re-running
+    // when the effect function's identity changes (common with inline functions).
+    // Callers should memoize effect with useCallback if it references external state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, ...(deps ?? [])]);
 }
