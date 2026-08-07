@@ -7,6 +7,7 @@ export type UsefulMapsConfig = {
   uploadTicketIssuer: string;
   uploadTicketAudience: string;
   maxUploadBytes: number;
+  allowedBlobHosts: readonly string[];
 };
 
 function parsePositiveInteger(value: string | undefined, fallback: number, name: string): number {
@@ -69,5 +70,10 @@ export function getUsefulMapsConfig(): UsefulMapsConfig {
       15 * 1024 * 1024,
       'USEFUL_MAPS_MAX_UPLOAD_BYTES'
     ),
+    allowedBlobHosts: parseCsvList(process.env.USEFUL_MAPS_ALLOWED_BLOB_HOSTS, [
+      // Vercel Blob public domains
+      'pub-*.r2.dev',
+      'pub-*.s3.amazonaws.com',
+    ]),
   };
 }

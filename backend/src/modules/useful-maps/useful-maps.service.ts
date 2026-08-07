@@ -218,8 +218,9 @@ export class UsefulMapsService {
       throw new BadRequestException('Blob exceeds the maximum size permitted by the ticket');
     }
 
+    const config = getUsefulMapsConfig();
     const validatedImageUrl = this.assertAllowedPublicBlobUrl(input.imageUrl);
-    const blobHead = await headPublicBlob(validatedImageUrl);
+    const blobHead = await headPublicBlob(validatedImageUrl, config.allowedBlobHosts);
     if (blobHead.contentType && blobHead.contentType !== input.mimeType) {
       throw new BadRequestException('Blob content type does not match metadata');
     }
