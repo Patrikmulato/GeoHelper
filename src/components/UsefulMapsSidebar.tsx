@@ -28,13 +28,14 @@ export default function UsefulMapsSidebar({ items, scrollContainerId }: Props) {
           onClick={() => scrollTo(id)}
           className="group flex flex-col gap-1 rounded-md p-1.5 text-left transition-colors hover:bg-zinc-800"
         >
-          <div className="overflow-hidden rounded border border-zinc-700/60 transition-colors group-hover:border-blue-600">
+          <div className="aspect-[5/2] overflow-hidden rounded border border-zinc-700/60 transition-colors group-hover:border-blue-600">
             <Image
               src={src}
               alt={title}
               width={200}
               height={80}
-              className="h-20 w-full object-cover"
+              className="h-auto w-full object-cover"
+              style={{ height: 'auto' }}
               unoptimized
             />
           </div>

@@ -4,19 +4,16 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteUserById, listUsers } from '@/lib/api/users';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import UsefulMapsAdminPanel from '@/components/UsefulMapsAdminPanel';
 import type { User } from '@/types/user';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { status, role, user: currentUser, restoreSession } = useAuth();
+  const { status, isAdmin, user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    void restoreSession();
-  }, [restoreSession]);
 
   // Send unauthenticated visitors to the login route.
   useEffect(() => {
@@ -27,7 +24,7 @@ export default function DashboardPage() {
 
   // Load users only for authenticated admins.
   useEffect(() => {
-    if (status !== 'authenticated' || role !== 'ADMIN') {
+    if (status !== 'authenticated' || !isAdmin) {
       return;
     }
 
@@ -55,13 +52,13 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [status, role]);
+  }, [status, isAdmin]);
 
   if (status === 'loading') {
     return <div className="flex flex-1 items-center justify-center text-zinc-500">Loading…</div>;
   }
 
-  if (status === 'authenticated' && role !== 'ADMIN') {
+  if (status === 'authenticated' && !isAdmin) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
         <p className="text-3xl font-bold text-white">403</p>
@@ -144,6 +141,8 @@ export default function DashboardPage() {
             </table>
           </div>
         )}
+
+        <UsefulMapsAdminPanel />
       </div>
     </div>
   );

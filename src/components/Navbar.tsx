@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 
 const TABS = [
+  { label: 'Dashboard', href: '/dashboard', isAdminOnly: true },
   { label: 'World Map', href: '/' },
   { label: 'US Plates', href: '/us-plates' },
   { label: 'Useful Maps', href: '/useful-maps' },
@@ -13,7 +14,7 @@ const TABS = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { status, role, logout } = useAuth();
+  const { status, role, isAdmin, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -68,8 +69,11 @@ export default function Navbar() {
         )}
       </div>
       <nav className="flex gap-1">
-        {TABS.map(({ label, href }) => {
+        {TABS.map(({ label, href, isAdminOnly }) => {
           const isActive = pathname === href;
+          if (isAdminOnly && !isAdmin) {
+            return null;
+          }
           return isActive ? (
             <span
               key={href}

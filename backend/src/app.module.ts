@@ -9,6 +9,7 @@ import { DataModule } from './modules/data/data.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
 import { SavedFiltersModule } from './modules/saved-filters/saved-filters.module.js';
+import { UsefulMapsModule } from './modules/useful-maps/useful-maps.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
@@ -19,6 +20,7 @@ import { UsersModule } from './modules/users/users.module.js';
     PrismaModule,
     UsersModule,
     SavedFiltersModule,
+    UsefulMapsModule,
     AuthModule,
     RateLimitModule,
   ],

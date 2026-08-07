@@ -51,31 +51,38 @@ describe('AuthProvider', () => {
     jest.clearAllMocks();
   });
 
-  it('does not refresh on mount for signed-out users', async () => {
+  it('starts in loading and transitions to unauthenticated on mount', async () => {
+    (authApi.refresh as jest.Mock).mockRejectedValue(new Error('No session'));
+
     render(
       <AuthProvider>
         <TestConsumer />
       </AuthProvider>
     );
 
-    expect(authApi.refresh).not.toHaveBeenCalled();
-    expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated');
+    expect(screen.getByTestId('status')).toHaveTextContent('loading');
+
+    await waitFor(() => {
+      expect(authApi.refresh).toHaveBeenCalled();
+      expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated');
+    });
   });
 
   it('single-flights concurrent refresh calls into one network request', async () => {
+    let resolveInitialRefresh: (session: AuthResponse) => void = () => {};
+    (authApi.refresh as jest.Mock).mockReturnValue(
+      new Promise<AuthResponse>((resolve) => {
+        resolveInitialRefresh = resolve;
+      })
+    );
+
     render(
       <AuthProvider>
         <TestConsumer />
       </AuthProvider>
     );
 
-    let resolveRefresh: (session: AuthResponse) => void = () => {};
-    (authApi.refresh as jest.Mock).mockReturnValue(
-      new Promise<AuthResponse>((resolve) => {
-        resolveRefresh = resolve;
-      })
-    );
-
+    // Initial refresh from mount
     const refresher = getLatestRefresher();
 
     let p1: Promise<string | null>;
@@ -86,7 +93,7 @@ describe('AuthProvider', () => {
     });
 
     await act(async () => {
-      resolveRefresh(makeSession());
+      resolveInitialRefresh(makeSession());
       await Promise.all([p1, p2]);
     });
 

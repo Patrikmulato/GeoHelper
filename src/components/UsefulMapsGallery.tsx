@@ -134,6 +134,7 @@ function ZoomableImage({ src, alt, id, title }: ZoomableImageProps) {
               willChange: 'transform',
             }}
             unoptimized
+            loading="eager"
             draggable={false}
           />
         </div>
@@ -154,11 +155,7 @@ interface Props {
 
 export default function UsefulMapsGallery({ items }: Props) {
   if (items.length === 0) {
-    return (
-      <p className="py-20 text-center text-zinc-500">
-        No images found in <code className="text-zinc-400">public/useful-maps/</code>.
-      </p>
-    );
+    return <p className="py-20 text-center text-zinc-500">No useful maps available.</p>;
   }
 
   return (

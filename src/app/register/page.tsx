@@ -8,19 +8,15 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, status, role, restoreSession } = useAuth();
-
-  useEffect(() => {
-    void restoreSession();
-  }, [restoreSession]);
+  const { register, status, isAdmin } = useAuth();
 
   // Single role-aware redirect once authenticated (covers both fresh registrations
   // and already-authenticated visits) to avoid competing navigations.
   useEffect(() => {
     if (status === 'authenticated') {
-      router.replace(role === 'ADMIN' ? '/dashboard' : '/');
+      router.replace(isAdmin ? '/dashboard' : '/');
     }
-  }, [status, role, router]);
+  }, [status, isAdmin, router]);
 
   return (
     <AuthForm
