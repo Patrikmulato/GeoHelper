@@ -37,16 +37,23 @@ export async function headPublicBlob(
     throw new Error('Blob URL must use HTTPS');
   }
 
+  if (parsedUrl.username || parsedUrl.password) {
+    throw new Error('Blob URL must not contain credentials');
+  }
+
+  if (parsedUrl.port) {
+    throw new Error('Blob URL must not specify a port');
+  }
+
   if (!isHostAllowed(parsedUrl.hostname, allowedBlobHosts)) {
     throw new Error('Blob host is not allowed');
   }
 
-  // Reconstruct URL from validated parts only to prevent SSRF.
-  // Hostname is validated against allowedBlobHosts, and protocol is verified as HTTPS.
-  // The pathname/search come from Vercel Blob storage URLs, which are safe to fetch.
-  // lgtm[js/request-forgery]
-  const safeUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}`;
-  const response = await fetch(safeUrl, { method: 'HEAD' });
+  // Reconstruct the URL from validated parts only: HTTPS, no credentials, no explicit
+  // port, and a hostname matched against the configured blob-host allow-list. Redirects
+  // are rejected so an allowed host cannot bounce the request to an internal address.
+  const safeUrl = `https://${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}`;
+  const response = await fetch(safeUrl, { method: 'HEAD', redirect: 'error' }); // codeql[js/request-forgery] lgtm[js/request-forgery]
   if (!response.ok) {
     throw new Error(`Blob HEAD request failed with status ${response.status}`);
   }
