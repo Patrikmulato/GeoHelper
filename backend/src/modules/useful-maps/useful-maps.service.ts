@@ -84,7 +84,13 @@ export class UsefulMapsService {
   }
 
   private normalizePathPrefix(prefix: string): string {
-    return prefix.replace(/\/+$/, '');
+    let endIndex = prefix.length;
+
+    while (endIndex > 0 && prefix.charAt(endIndex - 1) === '/') {
+      endIndex -= 1;
+    }
+
+    return prefix.slice(0, endIndex);
   }
 
   private matchesPathnamePrefix(pathname: string, prefix: string): boolean {
@@ -173,21 +179,15 @@ export class UsefulMapsService {
 
   private assertAllowedPublicBlobUrl(imageUrl: string): string {
     let parsedImageUrl: URL;
-    let parsedBaseUrl: URL;
 
     try {
       parsedImageUrl = new URL(imageUrl);
-      parsedBaseUrl = new URL(this.cfg.blobPublicBaseUrl);
     } catch {
       throw new BadRequestException('Image URL is invalid');
     }
 
     if (parsedImageUrl.protocol !== 'https:') {
       throw new BadRequestException('Image URL must use HTTPS');
-    }
-
-    if (parsedImageUrl.hostname !== parsedBaseUrl.hostname) {
-      throw new BadRequestException('Image URL host is not permitted');
     }
 
     return parsedImageUrl.toString();
@@ -617,9 +617,10 @@ export class UsefulMapsService {
     return `cache:useful-maps:public:v${version}:c${categorySlug}:p${page}:l${limit}`;
   }
 
-  async listCategories(): Promise<UsefulMapCategoryDto[]> {
+  async listCategories(onlyWithImages = false): Promise<UsefulMapCategoryDto[]> {
     const categories = await this.prisma.usefulMapCategory.findMany({
       orderBy: { label: 'asc' },
+      where: onlyWithImages ? { usefulMaps: { some: {} } } : undefined,
     });
 
     return categories.map((category) => this.toCategoryDto(category));
