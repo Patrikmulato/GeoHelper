@@ -4,21 +4,45 @@ export type PublicBlobHead = {
   etag: string | null;
 };
 
-function isHostAllowed(hostname: string, allowedPatterns: readonly string[]): boolean {
-  return allowedPatterns.some((pattern) => {
-    if (pattern === hostname) {
-      return true;
-    }
+function normalizeHostname(hostname: string): string {
+  return hostname.trim().toLowerCase().replace(/\.$/, '');
+}
 
-    if (pattern.includes('*')) {
-      const regexPattern = pattern
-        .split('*')
-        .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
-        .join('.*');
-      return new RegExp(`^${regexPattern}$`).test(hostname);
-    }
-
+function isValidHostname(hostname: string): boolean {
+  if (!hostname || hostname.length > 253) {
     return false;
+  }
+
+  const labels = hostname.split('.');
+  return labels.every((label) => {
+    if (!label || label.length > 63) {
+      return false;
+    }
+    if (!/^[a-z0-9-]+$/.test(label)) {
+      return false;
+    }
+    if (label.startsWith('-') || label.endsWith('-')) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function isHostAllowed(hostname: string, allowedPatterns: readonly string[]): boolean {
+  const normalizedHost = normalizeHostname(hostname);
+  if (!isValidHostname(normalizedHost)) {
+    return false;
+  }
+
+  return allowedPatterns.some((rawPattern) => {
+    const pattern = normalizeHostname(rawPattern);
+
+    if (pattern.startsWith('*.')) {
+      const suffix = pattern.slice(2);
+      return normalizedHost.length > suffix.length && normalizedHost.endsWith(`.${suffix}`);
+    }
+
+    return pattern === normalizedHost;
   });
 }
 
@@ -45,14 +69,15 @@ export async function headPublicBlob(
     throw new Error('Blob URL must not specify a port');
   }
 
-  if (!isHostAllowed(parsedUrl.hostname, allowedBlobHosts)) {
+  const normalizedHostname = normalizeHostname(parsedUrl.hostname);
+  if (!isHostAllowed(normalizedHostname, allowedBlobHosts)) {
     throw new Error('Blob host is not allowed');
   }
 
   // Reconstruct the URL from validated parts only: HTTPS, no credentials, no explicit
-  // port, and a hostname matched against the configured blob-host allow-list. Redirects
-  // are rejected so an allowed host cannot bounce the request to an internal address.
-  const safeUrl = `https://${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}`;
+  // port, and a canonical hostname matched against the configured blob-host allow-list.
+  // Redirects are rejected so an allowed host cannot bounce the request to an internal address.
+  const safeUrl = new URL(parsedUrl.pathname + parsedUrl.search, `https://${normalizedHostname}`);
   const response = await fetch(safeUrl, { method: 'HEAD', redirect: 'error' }); // codeql[js/request-forgery] lgtm[js/request-forgery]
   if (!response.ok) {
     throw new Error(`Blob HEAD request failed with status ${response.status}`);
