@@ -1,15 +1,23 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
-import { resolveAccessTokenSecret, resolveRefreshTokenSecret } from './auth.constants.js';
+import {
+  getRefreshTokenCookieOptions,
+  resolveAccessTokenSecret,
+  resolveRefreshTokenSecret,
+} from './auth.constants.js';
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalJwtSecret = process.env.JWT_SECRET;
 const originalJwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+const originalFrontendUrl = process.env.FRONTEND_URL;
+const originalVercelUrl = process.env.VERCEL_URL;
 
 afterEach(() => {
   process.env.NODE_ENV = originalNodeEnv;
   process.env.JWT_SECRET = originalJwtSecret;
   process.env.JWT_REFRESH_SECRET = originalJwtRefreshSecret;
+  process.env.FRONTEND_URL = originalFrontendUrl;
+  process.env.VERCEL_URL = originalVercelUrl;
 });
 
 describe('auth constants', () => {
@@ -37,5 +45,40 @@ describe('auth constants', () => {
 
     assert.equal(resolveAccessTokenSecret(), 'dev-jwt-secret-change-me');
     assert.equal(resolveRefreshTokenSecret(), 'dev-jwt-refresh-secret-change-me');
+  });
+
+  it('uses SameSite=Lax outside production regardless of cross-site config', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.FRONTEND_URL = 'https://geo-helpers.vercel.app';
+    process.env.VERCEL_URL = 'geo-helpers-backend.vercel.app';
+
+    assert.equal(getRefreshTokenCookieOptions().sameSite, 'lax');
+    assert.equal(getRefreshTokenCookieOptions().secure, false);
+  });
+
+  it('uses SameSite=Lax in production when frontend and backend share a host', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.FRONTEND_URL = 'https://geo-helpers-backend.vercel.app';
+    process.env.VERCEL_URL = 'geo-helpers-backend.vercel.app';
+
+    assert.equal(getRefreshTokenCookieOptions().sameSite, 'lax');
+  });
+
+  it('uses SameSite=Lax in production when VERCEL_URL is unset (non-Vercel host)', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.FRONTEND_URL = 'https://geo-helpers.vercel.app';
+    delete process.env.VERCEL_URL;
+
+    assert.equal(getRefreshTokenCookieOptions().sameSite, 'lax');
+  });
+
+  it('uses SameSite=None + Secure in production when frontend and backend are cross-site', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.FRONTEND_URL = 'https://geo-helpers.vercel.app';
+    process.env.VERCEL_URL = 'geo-helpers-backend.vercel.app';
+
+    const options = getRefreshTokenCookieOptions();
+    assert.equal(options.sameSite, 'none');
+    assert.equal(options.secure, true);
   });
 });
