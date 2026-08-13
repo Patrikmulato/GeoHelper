@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ApiError } from '@/lib/api/client';
 import {
   createUsefulMapCategory,
   deleteUsefulMapCategory,
@@ -66,9 +67,7 @@ export default function UsefulMapCategoriesAdminPanel({
       setStatusMessage('Category created successfully.');
       await onChanged();
     } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      const message = error.response?.data?.message || 'Failed to create category.';
-      setError(message);
+      setError(err instanceof ApiError ? err.message : 'Failed to create category.');
     } finally {
       setCreating(false);
     }
@@ -106,9 +105,7 @@ export default function UsefulMapCategoriesAdminPanel({
       setStatusMessage('Category updated.');
       await onChanged();
     } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      const message = error.response?.data?.message || 'Failed to update category.';
-      setError(message);
+      setError(err instanceof ApiError ? err.message : 'Failed to update category.');
     }
   }
 
@@ -127,9 +124,7 @@ export default function UsefulMapCategoriesAdminPanel({
       setStatusMessage('Category deleted.');
       await onChanged();
     } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      const message = error.response?.data?.message || 'Failed to delete category.';
-      setError(message);
+      setError(err instanceof ApiError ? err.message : 'Failed to delete category.');
     } finally {
       setDeletingId(null);
     }

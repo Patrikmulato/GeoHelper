@@ -55,7 +55,11 @@ export class UsefulMapCategoriesService {
     const trimmedLabel = dto.label.trim();
     const trimmedSlug = dto.slug.trim();
 
-    // Case-insensitive pre-check
+    // Case-insensitive pre-check. Note: this check is not transactional, so two concurrent
+    // creates with case-variant labels (e.g. "Foo" and "foo") can both pass and both persist
+    // because the DB @unique constraint is case-sensitive. A fully safe fix requires a
+    // case-insensitive unique index (LOWER(label)) at the DB level. The P2002 catch below
+    // covers exact-match races only.
     const existing = await this.prisma.usefulMapCategory.findFirst({
       where: {
         OR: [
@@ -93,11 +97,7 @@ export class UsefulMapCategoriesService {
       };
     } catch (err: unknown) {
       // Type guard for Prisma errors
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (
-        (err as any) instanceof Prisma.PrismaClientKnownRequestError &&
-        (err as any).code === 'P2002'
-      ) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         throw new ConflictException('A category with this slug or label already exists');
       }
       throw err;
@@ -194,9 +194,20 @@ export class UsefulMapCategoriesService {
       );
     }
 
-    await this.prisma.usefulMapCategory.delete({
-      where: { id },
-    });
+    try {
+      await this.prisma.usefulMapCategory.delete({
+        where: { id },
+      });
+    } catch (err: unknown) {
+      // Guard against a concurrent map upload that lands between the _count check and the delete.
+      // The FK onDelete:Restrict constraint fires as P2003; surface it as 409, not 500.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+        throw new ConflictException(
+          'Cannot delete category: a map was attached to it concurrently'
+        );
+      }
+      throw err;
+    }
 
     await this.usefulMapsService.invalidatePublicCache();
 

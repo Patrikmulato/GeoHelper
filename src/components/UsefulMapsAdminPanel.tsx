@@ -37,13 +37,14 @@ type EditDraft = {
 };
 
 export default function UsefulMapsAdminPanel({
-  categories: initialCategories,
+  categories,
   onCategoriesStale,
+  categoriesLoading = false,
 }: {
   categories: UsefulMapCategory[];
   onCategoriesStale: () => Promise<void>;
+  categoriesLoading?: boolean;
 }) {
-  const [categories, setCategories] = useState<UsefulMapCategory[]>(initialCategories);
   const [maps, setMaps] = useState<UsefulMapAdmin[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -110,11 +111,6 @@ export default function UsefulMapsAdminPanel({
       active = false;
     };
   }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCategories(initialCategories);
-  }, [initialCategories]);
 
   const hasMore = maps.length < total;
 
@@ -315,7 +311,7 @@ export default function UsefulMapsAdminPanel({
       </div>
 
       {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
-      {categories.length === 0 && (
+      {!categoriesLoading && categories.length === 0 && (
         <p className="mb-3 text-sm text-red-400">Create a category below before uploading.</p>
       )}
       {statusMessage && <p className="mb-3 text-sm text-emerald-400">{statusMessage}</p>}
@@ -351,7 +347,7 @@ export default function UsefulMapsAdminPanel({
         <div className="flex items-center gap-3 md:col-span-4">
           <button
             type="submit"
-            disabled={creating || categories.length === 0}
+            disabled={creating || (!categoriesLoading && categories.length === 0)}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {creating ? 'Uploading…' : 'Upload useful map'}

@@ -63,6 +63,7 @@ export default function DashboardPage() {
   }, [status, isAdmin]);
 
   async function refreshCategories() {
+    setError(null);
     try {
       const categoryList = await listAdminUsefulMapCategories();
       setCategories(categoryList);
@@ -159,7 +160,11 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <UsefulMapsAdminPanel categories={categories} onCategoriesStale={refreshCategories} />
+        <UsefulMapsAdminPanel
+          categories={categories}
+          onCategoriesStale={refreshCategories}
+          categoriesLoading={loading}
+        />
         <UsefulMapCategoriesAdminPanel categories={categories} onChanged={refreshCategories} />
       </div>
     </div>

@@ -39,7 +39,7 @@ export class UsefulMapsController {
   constructor(@Inject(UsefulMapsService) private readonly usefulMapsService: UsefulMapsService) {}
 
   @Get('categories')
-  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600')
+  @Header('Cache-Control', 'no-store')
   @RateLimit(60, 60_000)
   @ApiResponseMessage('Useful map categories loaded')
   async listCategories(
