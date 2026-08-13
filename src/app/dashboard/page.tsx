@@ -3,14 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteUserById, listUsers } from '@/lib/api/users';
+import { listAdminUsefulMapCategories } from '@/lib/api/useful-map-categories';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import UsefulMapsAdminPanel from '@/components/UsefulMapsAdminPanel';
+import UsefulMapCategoriesAdminPanel from '@/components/UsefulMapCategoriesAdminPanel';
 import type { User } from '@/types/user';
+import type { UsefulMapCategoryAdmin } from '@/types/useful-maps';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { status, isAdmin, user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [categories, setCategories] = useState<UsefulMapCategoryAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
@@ -32,13 +36,17 @@ export default function DashboardPage() {
 
     async function load() {
       try {
-        const items = await listUsers();
+        const [userList, categoryList] = await Promise.all([
+          listUsers(),
+          listAdminUsefulMapCategories(),
+        ]);
         if (active) {
-          setUsers(items);
+          setUsers(userList);
+          setCategories(categoryList);
         }
       } catch {
         if (active) {
-          setError('Failed to load users.');
+          setError('Failed to load data.');
         }
       } finally {
         if (active) {
@@ -53,6 +61,15 @@ export default function DashboardPage() {
       active = false;
     };
   }, [status, isAdmin]);
+
+  async function refreshCategories() {
+    try {
+      const categoryList = await listAdminUsefulMapCategories();
+      setCategories(categoryList);
+    } catch {
+      setError('Failed to refresh categories.');
+    }
+  }
 
   if (status === 'loading') {
     return <div className="flex flex-1 items-center justify-center text-zinc-500">Loading…</div>;
@@ -142,7 +159,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <UsefulMapsAdminPanel />
+        <UsefulMapsAdminPanel categories={categories} onCategoriesStale={refreshCategories} />
+        <UsefulMapCategoriesAdminPanel categories={categories} onChanged={refreshCategories} />
       </div>
     </div>
   );
