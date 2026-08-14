@@ -10,6 +10,7 @@ import { del } from '@vercel/blob';
 import { Prisma } from '../../../generated/prisma/index.js';
 import { CacheStore } from '../../common/cache/cache.store.js';
 import { LoggerService } from '../../common/logger/logger.service.js';
+import { sortByLabel } from '../../common/utils/sort-by-label.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { getUsefulMapsConfig } from '../../config/useful-maps.config.js';
 import { UsefulMapCategoryDto } from './dto/useful-map-category.dto.js';
@@ -620,11 +621,10 @@ export class UsefulMapsService {
 
   async listCategories(onlyWithImages = false): Promise<UsefulMapCategoryDto[]> {
     const categories = await this.prisma.usefulMapCategory.findMany({
-      orderBy: { label: 'asc' },
       where: onlyWithImages ? { usefulMaps: { some: {} } } : undefined,
     });
 
-    return categories.map((category) => this.toCategoryDto(category));
+    return sortByLabel(categories.map((category) => this.toCategoryDto(category)));
   }
 
   async listPublicUsefulMaps(query: ListPublicUsefulMapsQueryDto): Promise<PaginatedUsefulMapsDto> {

@@ -6,6 +6,19 @@ export interface UsefulMapCategory {
   updatedAt: string;
 }
 
+export interface UsefulMapCategoryAdmin extends UsefulMapCategory {
+  mapCount: number;
+}
+
+export interface CreateUsefulMapCategoryPayload {
+  slug: string;
+  label: string;
+}
+
+export interface UpdateUsefulMapCategoryPayload {
+  label: string;
+}
+
 export interface UsefulMapSummary {
   id: string;
   title: string;

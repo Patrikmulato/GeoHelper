@@ -13,18 +13,22 @@ Runs on port 3001 locally; deployed as Vercel serverless via `api/index.ts`.
 
 ## API Endpoints
 
-| Method | Path                 | Purpose                                                    |
-| ------ | -------------------- | ---------------------------------------------------------- |
-| GET    | `/api/data/geojson`  | World GeoJSON from `../public/countries.geo.json`          |
-| GET    | `/api/data/map`      | Full country metadata + server-rendered HTML tooltips      |
-| POST   | `/api/data/filter`   | Filter countries by 7 criteria → `{ countries: string[] }` |
-| POST   | `/api/auth/register` | Create account, return access token, set refresh cookie    |
-| POST   | `/api/auth/login`    | Authenticate, return access token, set refresh cookie      |
-| POST   | `/api/auth/refresh`  | Rotate session via HttpOnly refresh cookie                 |
-| POST   | `/api/auth/logout`   | Clear refresh cookie and revoke current refresh session    |
-| GET    | `/api/auth/me`       | Return current user from Bearer access token               |
-| GET    | `/api/health`        | Liveness check                                             |
-| GET    | `/api/health/ready`  | Readiness check with dependency verification               |
+| Method | Path                             | Purpose                                                    |
+| ------ | -------------------------------- | ---------------------------------------------------------- |
+| GET    | `/api/data/geojson`              | World GeoJSON from `../public/countries.geo.json`          |
+| GET    | `/api/data/map`                  | Full country metadata + server-rendered HTML tooltips      |
+| POST   | `/api/data/filter`               | Filter countries by 7 criteria → `{ countries: string[] }` |
+| POST   | `/api/auth/register`             | Create account, return access token, set refresh cookie    |
+| POST   | `/api/auth/login`                | Authenticate, return access token, set refresh cookie      |
+| POST   | `/api/auth/refresh`              | Rotate session via HttpOnly refresh cookie                 |
+| POST   | `/api/auth/logout`               | Clear refresh cookie and revoke current refresh session    |
+| GET    | `/api/auth/me`                   | Return current user from Bearer access token               |
+| GET    | `/api/health`                    | Liveness check                                             |
+| GET    | `/api/health/ready`              | Readiness check with dependency verification               |
+| GET    | `/api/useful-map-categories`     | (ADMIN) list categories with map counts                    |
+| POST   | `/api/useful-map-categories`     | (ADMIN) create category                                    |
+| PUT    | `/api/useful-map-categories/:id` | (ADMIN) update category label                              |
+| DELETE | `/api/useful-map-categories/:id` | (ADMIN) delete category (409 if maps present)              |
 
 ## Directory Structure
 
@@ -47,6 +51,12 @@ src/
     saved-filters.controller.ts  # user/public saved-filter endpoints
   modules/users/
     users.controller.ts          # admin-only user management
+  modules/useful-maps/
+    useful-maps.controller.ts    # public + admin useful map endpoints
+    useful-maps.service.ts       # Business logic + blob lifecycle
+  modules/useful-map-categories/
+    useful-map-categories.controller.ts  # admin CRUD endpoints
+    useful-map-categories.service.ts     # Business logic + cache invalidation
   modules/data/
     data.controller.ts           # 3 endpoints
     data.service.ts              # Business logic + in-memory filter cache (300 entries, FIFO + TTL)
@@ -96,6 +106,12 @@ Crawler env vars: `GUIDE_SOURCE_BASE_URL` (required), `GUIDE_SOURCE_SITEMAP_URL`
 `dto/filter-request.dto.ts` defines allowed values for all 7 filters via class-validator decorators. `ValidationPipe` is configured with `whitelist: true, forbidNonWhitelisted: true` — unknown fields → 400.
 
 **If adding a new filter value or new filter type:** update the DTO _and_ the corresponding frontend type in `src/types/map-data.ts`.
+
+## Useful Map Categories
+
+- **Category slugs are immutable after creation** because blob pathnames embed them (e.g. `useful-maps/{slug}/...`). Only the label can be edited via PUT.
+- **Categories are always ordered alphabetically by label**, sorted server-side via `sortByLabel()` in `common/utils/sort-by-label.ts` — there is no sort-position field.
+- **Categories are created only through `/api/useful-map-categories`** — `prisma/seed.ts` no longer seeds them, so a fresh database starts with none. Existing databases keep their pre-existing categories unchanged.
 
 ## Testing
 

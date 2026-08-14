@@ -8,21 +8,13 @@ import {
   deleteUsefulMap,
   issueUsefulMapUploadTicket,
   listAdminUsefulMaps,
-  listUsefulMapCategories,
   retryUsefulMapBlobCleanup,
   updateUsefulMap,
 } from '@/lib/api/useful-maps';
+import { slugify } from '@/lib/slugify';
 import type { UsefulMapAdmin, UsefulMapCategory } from '@/types/useful-maps';
 
 const PAGE_SIZE = 12;
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 function extensionFromFile(file: File): string {
   const fromName = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : '';
@@ -44,8 +36,15 @@ type EditDraft = {
   categorySlug: string;
 };
 
-export default function UsefulMapsAdminPanel() {
-  const [categories, setCategories] = useState<UsefulMapCategory[]>([]);
+export default function UsefulMapsAdminPanel({
+  categories,
+  onCategoriesStale,
+  categoriesLoading = false,
+}: {
+  categories: UsefulMapCategory[];
+  onCategoriesStale: () => Promise<void>;
+  categoriesLoading?: boolean;
+}) {
   const [maps, setMaps] = useState<UsefulMapAdmin[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -69,14 +68,11 @@ export default function UsefulMapsAdminPanel() {
     setError(null);
 
     try {
-      const [categoryList, result] = await Promise.all([
-        listUsefulMapCategories({ onlyWithImages: true }),
-        listAdminUsefulMaps({ page: 1, limit: PAGE_SIZE }),
-      ]);
-      setCategories(categoryList);
+      const result = await listAdminUsefulMaps({ page: 1, limit: PAGE_SIZE });
       setMaps(result.items);
       setTotal(result.total);
       setPage(1);
+      await onCategoriesStale();
     } catch {
       setError('Failed to load useful maps admin data.');
     } finally {
@@ -89,16 +85,12 @@ export default function UsefulMapsAdminPanel() {
 
     async function loadInitialData() {
       try {
-        const [categoryList, result] = await Promise.all([
-          listUsefulMapCategories(),
-          listAdminUsefulMaps({ page: 1, limit: PAGE_SIZE }),
-        ]);
+        const result = await listAdminUsefulMaps({ page: 1, limit: PAGE_SIZE });
 
         if (!active) {
           return;
         }
 
-        setCategories(categoryList);
         setMaps(result.items);
         setTotal(result.total);
         setPage(1);
@@ -319,6 +311,9 @@ export default function UsefulMapsAdminPanel() {
       </div>
 
       {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      {!categoriesLoading && categories.length === 0 && (
+        <p className="mb-3 text-sm text-red-400">Create a category below before uploading.</p>
+      )}
       {statusMessage && <p className="mb-3 text-sm text-emerald-400">{statusMessage}</p>}
 
       <form
@@ -352,7 +347,7 @@ export default function UsefulMapsAdminPanel() {
         <div className="flex items-center gap-3 md:col-span-4">
           <button
             type="submit"
-            disabled={creating}
+            disabled={creating || (!categoriesLoading && categories.length === 0)}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {creating ? 'Uploading…' : 'Upload useful map'}
