@@ -124,7 +124,8 @@ describe('AuthController (e2e)', () => {
       .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
-    await app.register(fastifyCookie);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await app.register(fastifyCookie as any);
     app.setGlobalPrefix('api');
     app.useGlobalPipes(
       new ValidationPipe({
