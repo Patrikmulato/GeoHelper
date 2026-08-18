@@ -6,6 +6,7 @@ import Home from '../page';
 import * as mapData from '@/lib/api/map-data';
 
 jest.mock('@/lib/api/map-data', () => ({
+  fetchCarMetaData: jest.fn().mockResolvedValue({}),
   fetchFilteredCountries: jest.fn(),
   fetchGeoJson: jest.fn(),
   fetchMapData: jest.fn(),
@@ -54,6 +55,7 @@ describe('Home', () => {
     jest.resetAllMocks();
     window.sessionStorage.clear();
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    (mapData.fetchCarMetaData as jest.Mock).mockResolvedValue({});
     (mapData.fetchGeoJson as jest.Mock).mockResolvedValue(MOCK_GEOJSON);
     (mapData.fetchMapData as jest.Mock).mockResolvedValue(MOCK_MAP_DATA);
     (mapData.fetchFilteredCountries as jest.Mock).mockResolvedValue({ countries: [] });

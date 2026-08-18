@@ -20,6 +20,12 @@ export class DataController {
     return this.dataService.getMapData();
   }
 
+  @Get('car-meta')
+  @Header('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800')
+  getCarMetaData() {
+    return this.dataService.getCarMetaData();
+  }
+
   @Post('filter')
   @ApiResponseMessage('Filtered countries generated')
   getFilteredCountries(
