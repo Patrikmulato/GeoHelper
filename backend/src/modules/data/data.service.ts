@@ -12,6 +12,7 @@ import {
   carColorData,
   vehicleTypeData,
 } from '../../data/geo-car-helpdesk.js';
+import { carMetaCoordsData } from '../../data/car-meta-coords.js';
 import { LoggerService } from '../../common/logger/logger.service.js';
 import { FilterRequestDto } from './dto/filter-request.dto.js';
 import { FilterResponseDto } from './dto/filter-response.dto.js';
@@ -225,5 +226,9 @@ export class DataService {
       cacheKey,
     });
     return response;
+  }
+
+  getCarMetaData(): Record<string, Array<[number, number, number]>> {
+    return carMetaCoordsData;
   }
 }

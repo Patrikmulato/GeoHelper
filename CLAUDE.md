@@ -11,7 +11,7 @@
 - Leaflet map loaded client-side only (`next/dynamic`, `ssr: false`)
 - Key frontend components: `WorldMap.tsx` (map), `FilterDropdown.tsx` (reusable filter UI)
 - NestJS backend in `backend/` is source of truth for map/filter data — see `backend/CLAUDE.md` for full backend details
-- API routes: `GET /api/data/geojson`, `GET /api/data/map`, `POST /api/data/filter`
+- API routes: `GET /api/data/geojson`, `GET /api/data/map`, `POST /api/data/filter`, `GET /api/data/car-meta`
 - Build frontend: `pnpm build` | Dev frontend: `pnpm dev`
 - Build backend: `pnpm build:backend` | Dev backend: `pnpm dev:backend`
 - Frontend tests: `pnpm test` | Frontend tests with coverage: `pnpm test:coverage`

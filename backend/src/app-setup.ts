@@ -39,7 +39,10 @@ export function setupApp(app: NestFastifyApplication, options: SetupOptions = {}
   const { withGlobalPrefix = true } = options;
   const appConfig = getAppConfig();
 
-  app.register(fastifyCookie);
+  // Type assertion: @fastify/cookie v11 types FastifyCookie with extra utility
+  // methods that cause TypeScript plugin assignability failures
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.register(fastifyCookie as any);
 
   // Build allowed origins - supports localhost, env vars, and Vercel preview deployments
   const allowedOrigins = [

@@ -31,3 +31,7 @@ export type FilterRequest = {
 export type FilterResponse = {
   countries: string[];
 };
+
+// [lat, lng, colorIdx]  colorIdx: 1=black 2=blue 3=white 4=red 5=navy 6=grey 7=striped 8=white-blue
+export type CarMetaCoord = [number, number, number];
+export type CarMetaResponse = Record<string, CarMetaCoord[]>;

@@ -4,16 +4,37 @@ import { useEffect, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+// colorIdx: 1=black 2=blue 3=white 4=red 5=navy 6=grey 7=striped 8=white-blue
+const DOT_COLORS: Record<number, string> = {
+  1: '#374151',
+  2: '#3b82f6',
+  3: '#e2e8f0',
+  4: '#ef4444',
+  5: '#1e40af',
+  6: '#9ca3af',
+  7: '#f59e0b',
+  8: '#93c5fd',
+};
+
+export interface CarDot {
+  lat: number;
+  lng: number;
+  colorIdx: number;
+}
+
 interface WorldMapProps {
   geojson: GeoJSON.FeatureCollection | null;
   getColor: (countryName: string) => string;
   getTooltip: (countryName: string) => string;
+  carDots?: CarDot[];
 }
 
-export default function WorldMap({ geojson, getColor, getTooltip }: WorldMapProps) {
+export default function WorldMap({ geojson, getColor, getTooltip, carDots }: WorldMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.GeoJSON | null>(null);
+  const dotsLayerRef = useRef<L.LayerGroup | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hoveredLayerRef = useRef<L.Layer | null>(null);
 
   // Initialize map once
   useEffect(() => {
@@ -33,6 +54,9 @@ export default function WorldMap({ geojson, getColor, getTooltip }: WorldMapProp
       zoomControl: false,
     });
 
+    const dotsPane = mapRef.current.createPane('dotsPane');
+    dotsPane.style.zIndex = '450';
+
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       noWrap: true,
       bounds: [
@@ -44,6 +68,18 @@ export default function WorldMap({ geojson, getColor, getTooltip }: WorldMapProp
     }).addTo(mapRef.current);
 
     mapRef.current.invalidateSize();
+
+    mapRef.current.on('zoomend', () => {
+      if (mapRef.current && mapRef.current.getZoom() === mapRef.current.getMinZoom()) {
+        mapRef.current.fitBounds(
+          [
+            [-58, -175],
+            [82, 175],
+          ],
+          { padding: [24, 24], animate: true }
+        );
+      }
+    });
 
     const handleResize = () => {
       mapRef.current?.invalidateSize();
@@ -68,6 +104,7 @@ export default function WorldMap({ geojson, getColor, getTooltip }: WorldMapProp
 
     if (layerRef.current) {
       layerRef.current.remove();
+      hoveredLayerRef.current = null;
     }
 
     layerRef.current = L.geoJSON(geojson, {
@@ -92,12 +129,22 @@ export default function WorldMap({ geojson, getColor, getTooltip }: WorldMapProp
 
         layer.on({
           mouseover: (e) => {
+            // Explicitly close the previous layer's tooltip in case its mouseout was swallowed
+            // by bringToFront() reordering SVG elements
+            if (hoveredLayerRef.current && hoveredLayerRef.current !== e.target) {
+              hoveredLayerRef.current.closeTooltip();
+              layerRef.current?.resetStyle(hoveredLayerRef.current);
+            }
+            hoveredLayerRef.current = e.target as L.Layer;
             const l = e.target as L.Path;
             l.setStyle({ weight: 2, color: '#fff', fillOpacity: 0.9 });
             l.bringToFront();
           },
           mouseout: (e) => {
             layerRef.current?.resetStyle(e.target);
+            if (hoveredLayerRef.current === e.target) {
+              hoveredLayerRef.current = null;
+            }
           },
         });
       },
@@ -112,6 +159,31 @@ export default function WorldMap({ geojson, getColor, getTooltip }: WorldMapProp
       { padding: [24, 24] }
     );
   }, [geojson, getColor, getTooltip, getCountryName]);
+
+  // Render/remove car color dots when carDots changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    dotsLayerRef.current?.remove();
+    if (!carDots?.length) {
+      dotsLayerRef.current = null;
+      return;
+    }
+    const group = L.layerGroup();
+    for (const { lat, lng, colorIdx } of carDots) {
+      const color = DOT_COLORS[colorIdx];
+      if (!color) continue;
+      L.circleMarker([lat, lng], {
+        radius: 4,
+        color: 'transparent',
+        fillColor: color,
+        fillOpacity: 0.75,
+        weight: 0,
+        pane: 'dotsPane',
+      }).addTo(group);
+    }
+    group.addTo(mapRef.current);
+    dotsLayerRef.current = group;
+  }, [carDots]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }

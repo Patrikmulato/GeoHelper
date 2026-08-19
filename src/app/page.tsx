@@ -5,7 +5,12 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import FilterDropdown from '@/components/FilterDropdown';
 import SavedFiltersPanel from '@/components/SavedFiltersPanel';
-import { fetchFilteredCountries, fetchGeoJson, fetchMapData } from '@/lib/api/map-data';
+import {
+  fetchCarMetaData,
+  fetchFilteredCountries,
+  fetchGeoJson,
+  fetchMapData,
+} from '@/lib/api/map-data';
 import { takePendingFilter } from '@/lib/saved-filters/pending-filter';
 import type {
   CarColor,
@@ -14,6 +19,7 @@ import type {
   RoadLinePattern,
   VehicleType,
 } from '@/types/map-data';
+import type { CarDot } from '@/components/WorldMap';
 
 const WorldMap = dynamic(() => import('@/components/WorldMap'), { ssr: false });
 
@@ -42,6 +48,8 @@ export default function Home() {
   const [initialError, setInitialError] = useState<string | null>(null);
   const [filterError, setFilterError] = useState<string | null>(null);
   const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [carDots, setCarDots] = useState<CarDot[]>([]);
+  const [showCarDots, setShowCarDots] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -125,6 +133,22 @@ export default function Home() {
     carColorFilter,
     vehicleTypeFilter,
   ]);
+
+  useEffect(() => {
+    fetchCarMetaData()
+      .then((data) => {
+        const dots: CarDot[] = [];
+        for (const coords of Object.values(data)) {
+          for (const [lat, lng, colorIdx] of coords) {
+            dots.push({ lat, lng, colorIdx });
+          }
+        }
+        setCarDots(dots);
+      })
+      .catch(() => {
+        // Car dots are an optional overlay — silently skip if unavailable
+      });
+  }, []);
 
   const allLinePatterns = useMemo(() => {
     if (!mapData) return [] as RoadLinePattern[];
@@ -466,7 +490,23 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="border-t border-zinc-800 px-3 py-3">
+        <div className="border-t border-zinc-800 px-3 py-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+              Car Dots
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowCarDots((v) => !v)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${showCarDots ? 'bg-blue-600' : 'bg-zinc-700'}`}
+              role="switch"
+              aria-checked={showCarDots}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showCarDots ? 'translate-x-4' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
           <SavedFiltersPanel currentFilters={currentFilters} onApply={applySanitizedFilters} />
           <button
             type="button"
@@ -493,7 +533,12 @@ export default function Home() {
         {initialError ? (
           <div className="flex h-full items-center justify-center text-red-400">{initialError}</div>
         ) : geojson && mapData && filteredCountries ? (
-          <WorldMap geojson={geojson} getColor={getColor} getTooltip={getTooltip} />
+          <WorldMap
+            geojson={geojson}
+            getColor={getColor}
+            getTooltip={getTooltip}
+            carDots={showCarDots ? carDots : []}
+          />
         ) : (
           <div className="flex h-full items-center justify-center text-zinc-500">
             {isInitialLoading ? 'Loading map…' : 'Waiting for data…'}
