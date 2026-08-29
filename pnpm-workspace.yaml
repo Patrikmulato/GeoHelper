@@ -16,7 +16,7 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 overrides:
-  js-yaml: 4.3.1
+  js-yaml: 4.3.2
   '@hono/node-server': 2.1.1
 minimumReleaseAgeExclude:
   - tsx@4.23.4
