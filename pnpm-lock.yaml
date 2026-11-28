@@ -171,8 +171,8 @@ importers:
         specifier: ^7.8.0
         version: 7.10.1(@types/node@25.9.12)(@types/react-dom@19.3.0(@types/react@19.3.3))(@types/react@19.3.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3)
       puppeteer:
-        specifier: 25.18.1
-        version: 25.18.1
+        specifier: 25.19.0
+        version: 25.19.0
       supertest:
         specifier: 7.3.2
         version: 7.3.2(supports-color@10.2.2)
@@ -1442,8 +1442,8 @@ packages:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
 
-  '@puppeteer/browsers@3.2.7':
-    resolution: {integrity: sha512-B3C/v8OEEaJYcN1IzzgbPmt+GbFANr4Mf/NrqNuGk/dIchrv6quNqxgT+A6qE0Ge0MN95NjKUddcR1JMpYRMWA==}
+  '@puppeteer/browsers@3.3.0':
+    resolution: {integrity: sha512-ZiOVHQ5KmsinwZJMwRc/a3xsGHbi9dRuAyf2gq4i9J5vRaI4r7SSIaJUniF1JVClG+qNoVdtBBWfL08N9Oib6g==}
     engines: {node: '>=22.12.0'}
     hasBin: true
     peerDependencies:
@@ -2623,8 +2623,8 @@ packages:
     resolution: {integrity: sha512-TLz+x/vEXm/Y7P7wn1EJFNLxYpUD4TgMosxY6fAVJUnJMbupHBOncxyWUG9OpTaH9EBD7uFI5LfEgmMOc54DsA==}
     engines: {node: '>=8'}
 
-  devtools-protocol@0.0.1717327:
-    resolution: {integrity: sha512-3RDLDzyvv8XAYf1L+TL1og0EEk0eOW1Jn0yi88uG6Bj8fUKO1ZKfgNtwbJkqf5SWdPDS4VGEPxwdUWz78V6Xcg==}
+  devtools-protocol@0.0.1724436:
+    resolution: {integrity: sha512-GcO1782pvzpmY4pQO1zjr8WZ95Wv8GodOs0v5J9QWwLGulTzfYIYECEd9iUsnqJmcehu+VMKxZquvjY8T2jhAA==}
 
   dezalgo@1.0.4:
     resolution: {integrity: sha512-rXSP0bf+5n0Qonsb+SVVfNfIsimO4HEtmnIpPHY8Q1UCzKlQrDMfdobr8nJOOsRgWCyMRqeSBQzmWUMq7zvVig==}
@@ -4284,12 +4284,12 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
-  puppeteer-core@25.18.1:
-    resolution: {integrity: sha512-C0wHOJHDfAggGBtN5uUfsJGpeSKtPL5jzhgQYDuz4XKeOG1FUkxeZI2M5yK7AUyrdHO+RgDuiCfjmOpcw3PYTA==}
+  puppeteer-core@25.19.0:
+    resolution: {integrity: sha512-F4pw8kpSczJS3TCHBw7/qskDxv4cMj09oOv7BwhHGYOerxLF1Sk2t4tpWlLvy6Vx/mM6TuqkDj4j0j3PRN1FiA==}
     engines: {node: '>=22.12.0'}
 
-  puppeteer@25.18.1:
-    resolution: {integrity: sha512-fCsfwERKluvC84jsVyhDoBZMNuI8t5FFnWXcTdH1vn3NhMk6clZcrF0Da2se6/Hj6CBJ+2PRPpqeV0qPIETeJA==}
+  puppeteer@25.19.0:
+    resolution: {integrity: sha512-38yJg6bAi6TOfQr/UTKllIVfm5zMWxBzURETCF3mzSylKQr9yUMyLz7YMl2yJCgfkJfhRl+j0qeKtm++X4J68w==}
     engines: {node: '>=22.12.0'}
     hasBin: true
 
@@ -6353,7 +6353,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react-dom'
 
-  '@puppeteer/browsers@3.2.7':
+  '@puppeteer/browsers@3.3.0':
     dependencies:
       modern-tar: 0.8.6
       yargs: 18.1.0
@@ -7298,9 +7298,9 @@ snapshots:
     dependencies:
       readdirp: 5.0.0
 
-  chromium-bidi@157.0.8090-0(devtools-protocol@0.0.1717327):
+  chromium-bidi@157.0.8090-0(devtools-protocol@0.0.1724436):
     dependencies:
-      devtools-protocol: 0.0.1717327
+      devtools-protocol: 0.0.1724436
       mitt: 3.0.1
       zod: 4.6.5
 
@@ -7544,7 +7544,7 @@ snapshots:
 
   detect-newline@3.1.0: {}
 
-  devtools-protocol@0.0.1717327: {}
+  devtools-protocol@0.0.1724436: {}
 
   dezalgo@1.0.4:
     dependencies:
@@ -9597,11 +9597,11 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  puppeteer-core@25.18.1:
+  puppeteer-core@25.19.0:
     dependencies:
-      '@puppeteer/browsers': 3.2.7
-      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1717327)
-      devtools-protocol: 0.0.1717327
+      '@puppeteer/browsers': 3.3.0
+      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1724436)
+      devtools-protocol: 0.0.1724436
       typed-query-selector: 2.12.3
       webdriver-bidi-protocol: 1.0.2
       ws: 8.23.0
@@ -9611,13 +9611,13 @@ snapshots:
       - utf-8-validate
       - yauzl
 
-  puppeteer@25.18.1:
+  puppeteer@25.19.0:
     dependencies:
-      '@puppeteer/browsers': 3.2.7
-      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1717327)
-      devtools-protocol: 0.0.1717327
+      '@puppeteer/browsers': 3.3.0
+      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1724436)
+      devtools-protocol: 0.0.1724436
       lilconfig: 3.1.5
-      puppeteer-core: 25.18.1
+      puppeteer-core: 25.19.0
       typed-query-selector: 2.12.3
     transitivePeerDependencies:
       - bufferutil
